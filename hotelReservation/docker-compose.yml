@@ -130,7 +130,7 @@ services:
       - LOG_LEVEL
     build: .
     image: hotel_reserv_review_single_node
-    entrypoint: review
+    entrypoint: ./review
     container_name: 'hotel_reserv_review'
     depends_on:
       - mongodb-review
@@ -147,7 +147,7 @@ services:
       - LOG_LEVEL
     build: .
     image: hotel_reserv_attractions_single_node
-    entrypoint: attractions
+    entrypoint: ./attractions
     container_name: 'hotel_reserv_attractions'
     depends_on:
       - mongodb-attractions
