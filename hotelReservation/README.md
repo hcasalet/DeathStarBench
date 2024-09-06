@@ -17,6 +17,55 @@ Supported actions:
 - luarocks (apt-get install luarocks)
 - luasocket (luarocks install luasocket)
 
+-- Update your package index
+sudo apt update
+sudo apt upgrade -y
+
+-- Install Docker dependencies
+sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
+
+-- Add Docker’s official GPG key
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+
+-- Add Docker repository
+sudo sh -c 'echo "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list'
+
+-- Update package index again
+sudo apt update
+
+-- Install Docker CE
+sudo apt install -y docker-ce
+
+-- Verify Docker installation
+sudo systemctl status docker
+sudo docker run hello-world
+
+-- Download Docker Compose binary
+VERSION=2.11.2
+OS=$(uname -s)
+ARCH=$(uname -m)
+sudo curl -L "https://github.com/docker/compose/releases/download/v${VERSION}/docker-compose-${OS}-${ARCH}" -o /usr/local/bin/docker-compose
+
+-- Apply executable permissions
+sudo chmod +x /usr/local/bin/docker-compose
+
+-- Verify Docker Compose installation
+/usr/local/bin/docker-compose --version
+
+-- Create Docker group and add user to it (optional)
+sudo groupadd docker
+sudo usermod -aG docker $USER
+
+-- Activate changes (optional)
+newgrp docker
+
+-- Verify non-root Docker usage (optional)
+docker run hello-world
+
+## Get project
+git clone
+git submodule update --init --recursive
+
 ## Running the hotel reservation application
 ### Before you start
 - Install Docker and Docker Compose.

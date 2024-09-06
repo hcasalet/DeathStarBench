@@ -29,3 +29,5 @@ WORKDIR /workspace
 
 # Copy the executables from the builder stage
 COPY --from=builder /go/bin/* /workspace/
+COPY --from=builder /workspace/config.json /workspace/config.json
+
