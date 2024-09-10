@@ -49,8 +49,6 @@ Deploying instructions:
   % git submodule update --init --recursive
 
 5. Start docker containers
--- copy Dockerfile
-  % scp ~/Research/rpc-_shared_mem/DeathStarBench/hotelReservation/Dockerfile <user@ip>:/holly/DeathStarBench/hotelReservation/.
 -- start the containers
   % cd DeathStarBench/hotelReservation
   % docker-compose up -d --build
