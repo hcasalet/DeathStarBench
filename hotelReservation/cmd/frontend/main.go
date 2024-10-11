@@ -45,8 +45,6 @@ func main() {
 	
 	otel_tracer, err := tracing.InitTracer("frontend", *jaegerAddr)
 
-
-
 	tracer, err := tracing.Init("frontend", *jaegerAddr)
 	if err != nil {
 		log.Panic().Msgf("Got error while initializing jaeger agent: %v", err)
@@ -63,6 +61,7 @@ func main() {
 	srv := &frontend.Server{
 		KnativeDns: knativeDNS,
 		Registry:   registry,
+		OtelTracer: otel_tracer,
 		Tracer:     tracer,
 		IpAddr:     servIP,
 		ConsulAddr: *consulAddr,

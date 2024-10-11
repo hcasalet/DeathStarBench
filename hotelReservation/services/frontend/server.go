@@ -23,6 +23,8 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
 var (
@@ -44,6 +46,7 @@ type Server struct {
 	IpAddr     string
 	ConsulAddr string
 	Port       int
+	OtelTracer  trace.TracerProvider
 	Tracer     opentracing.Tracer
 	Registry   *registry.Client
 }
@@ -132,7 +135,7 @@ func (s *Server) initSearchClient(name string) error {
 func (s *Server) initReviewClient(name string) error {
 	conn, err := dialer.Dial(
 		name,
-		dialer.WithTracer(s.Tracer),
+		dialer.WithOtelTracer(s.OtelTracer),
 		dialer.WithBalancer(s.Registry.Client),
 	)
 	if err != nil {
@@ -145,7 +148,7 @@ func (s *Server) initReviewClient(name string) error {
 func (s *Server) initAttractionsClient(name string) error {
 	conn, err := dialer.Dial(
 		name,
-		dialer.WithTracer(s.Tracer),
+		dialer.WithOtelTracer(s.OtelTracer),
 		dialer.WithBalancer(s.Registry.Client),
 	)
 	if err != nil {
@@ -199,11 +202,11 @@ func (s *Server) getGprcConn(name string) (*grpc.ClientConn, error) {
 	if s.KnativeDns != "" {
 		return dialer.Dial(
 			fmt.Sprintf("consul://%s/%s.%s", s.ConsulAddr, name, s.KnativeDns),
-			dialer.WithTracer(s.Tracer))
+			dialer.WithOtelTracer(s.OtelTracer))
 	} else {
 		return dialer.Dial(
 			fmt.Sprintf("consul://%s/%s", s.ConsulAddr, name),
-			dialer.WithTracer(s.Tracer),
+			dialer.WithOtelTracer(s.OtelTracer),
 			dialer.WithBalancer(s.Registry.Client),
 		)
 	}

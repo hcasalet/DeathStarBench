@@ -17,6 +17,8 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace"
 
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+
+	"github.com/grafana/dskit/spanprofiler"
 )
 
 var (
@@ -24,7 +26,7 @@ var (
 )
 
 
-func InitTracer(serviceName, host string) (trace.TracerProvider,error){
+func InitTracer(serviceName, host string) (*trace.TracerProvider,error){
 
 
 		// Configure OTLP gRPC Exporter
@@ -37,9 +39,9 @@ func InitTracer(serviceName, host string) (trace.TracerProvider,error){
 		otel.SetTracerProvider( otelpyroscope.NewTracerProvider(tp))
 
 		// If you're using Pyroscope Go SDK, initialize pyroscope profiler.
-		_, _ = pyroscope.Start(pyroscope.Config{
+		_, err := pyroscope.Start(pyroscope.Config{
 			ApplicationName: serviceName,
-			ServerAddress:   "http://localhost:4040",
+			ServerAddress:   "http://172.17.0.1:4040",
 			Logger:          pyroscope.StandardLogger,
 			SampleRate:      101,
 
@@ -59,6 +61,9 @@ func InitTracer(serviceName, host string) (trace.TracerProvider,error){
 				pyroscope.ProfileBlockDuration,
 			  },
 		})
+		if err != nil {
+			log.Error().AnErr("error starting pyroscope profiler: %v", err)
+		}
    
 		otelgrpc.NewClientHandler(otelgrpc.WithTracerProvider(tp))
 	   // Set the global TracerProvider
@@ -116,5 +121,11 @@ func Init(serviceName, host string) (opentracing.Tracer, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	wrappedTracer := spanprofiler.NewTracer(tracer)
+	opentracing.SetGlobalTracer(wrappedTracer)
+
+
+
 	return tracer, nil
 }

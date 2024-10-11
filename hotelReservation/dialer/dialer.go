@@ -10,10 +10,21 @@ import (
 	opentracing "github.com/opentracing/opentracing-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
+
+	// "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
+
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 )
 
 // DialOption allows optional config for dialer
 type DialOption func(name string) (grpc.DialOption, error)
+
+func WithOtelTracer(tracer trace.TracerProvider) DialOption {
+	return func(name string) (grpc.DialOption, error) {
+		return grpc.WithUnaryInterceptor(otelgrpc.UnaryClientInterceptor(otelgrpc.WithTracerProvider(tracer))), nil
+	}
+}
 
 // WithTracer traces rpc calls
 func WithTracer(tracer opentracing.Tracer) DialOption {
