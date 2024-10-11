@@ -1,6 +1,21 @@
 version: "3.8"
 
 services:
+
+  pyroscope:
+    image: grafana/pyroscope:latest
+    environment:
+      JAEGER_AGENT_HOST: tempo
+      JAEGER_SAMPLER_TYPE: const
+      JAEGER_SAMPLER_PARAM: 1
+    ports:
+      - '4040:4040'
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+
+
   consul:
     image: hashicorp/consul:latest
     ports:

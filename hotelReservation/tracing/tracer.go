@@ -6,13 +6,81 @@ import (
 	"time"
 
 	opentracing "github.com/opentracing/opentracing-go"
-	"github.com/rs/zerolog/log"
 	"github.com/uber/jaeger-client-go/config"
+
+	"github.com/rs/zerolog/log"
+
+	otelpyroscope "github.com/grafana/otel-profiling-go"
+	"github.com/grafana/pyroscope-go"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/sdk/trace"
+
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 )
 
 var (
 	defaultSampleRatio float64 = 0.01
 )
+
+
+func InitTracer(serviceName, host string) (trace.TracerProvider,error){
+
+
+		// Configure OTLP gRPC Exporter
+		// ctx := context.Background()
+		tp := trace.NewTracerProvider(
+			trace.WithSampler(trace.AlwaysSample()),
+		)
+   
+	   	// Wrap it with otelpyroscope tracer provider.
+		otel.SetTracerProvider( otelpyroscope.NewTracerProvider(tp))
+
+		// If you're using Pyroscope Go SDK, initialize pyroscope profiler.
+		_, _ = pyroscope.Start(pyroscope.Config{
+			ApplicationName: serviceName,
+			ServerAddress:   "http://localhost:4040",
+			Logger:          pyroscope.StandardLogger,
+			SampleRate:      101,
+
+			ProfileTypes: []pyroscope.ProfileType{
+				// these profile types are enabled by default:
+				pyroscope.ProfileCPU,
+				pyroscope.ProfileAllocObjects,
+				pyroscope.ProfileAllocSpace,
+				pyroscope.ProfileInuseObjects,
+				pyroscope.ProfileInuseSpace,
+		  
+				// these profile types are optional:
+				pyroscope.ProfileGoroutines,
+				pyroscope.ProfileMutexCount,
+				pyroscope.ProfileMutexDuration,
+				pyroscope.ProfileBlockCount,
+				pyroscope.ProfileBlockDuration,
+			  },
+		})
+   
+		otelgrpc.NewClientHandler(otelgrpc.WithTracerProvider(tp))
+	   // Set the global TracerProvider
+	//    otel.SetTracerProvider(tp)
+   
+	   return tp, nil
+}
+
+// // Instrumenting the gRPC client
+// conn, _ := grpc.DialContext(
+//     context.Background(),
+//     "localhost:50051",
+//     grpc.WithInsecure(),
+//     grpc.WithUnaryInterceptor(otelgrpc.UnaryClientInterceptor()),
+//     grpc.WithStreamInterceptor(otelgrpc.StreamClientInterceptor()),
+// )
+
+// // Instrumenting the gRPC server
+// grpcServer := grpc.NewServer(
+//     grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()),
+//     grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
+// )
 
 // Init returns a newly configured tracer
 func Init(serviceName, host string) (opentracing.Tracer, error) {
