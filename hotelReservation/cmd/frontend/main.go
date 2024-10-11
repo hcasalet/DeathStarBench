@@ -11,6 +11,7 @@ import (
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/registry"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/frontend"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/tracing"
+
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/tune"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -43,10 +44,13 @@ func main() {
 	flag.Parse()
 	log.Info().Msgf("Initializing jaeger agent [service name: %v | host: %v]...", "frontend", *jaegerAddr)
 	tracer, err := tracing.Init("frontend", *jaegerAddr)
+	tracerfunc := tracing.InitTracer("frontend")
 	if err != nil {
 		log.Panic().Msgf("Got error while initializing jaeger agent: %v", err)
 	}
 	log.Info().Msg("Jaeger agent initialized")
+	defer tracerfunc()
+	//tracer := otel.Tracer("hotel-frontend-grpc-server")
 
 	log.Info().Msgf("Initializing consul agent [host: %v]...", *consulAddr)
 	registry, err := registry.NewClient(*consulAddr)

@@ -5,9 +5,10 @@ import (
 	"time"
 
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/tls"
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
+	//"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	consul "github.com/hashicorp/consul/api"
 	opentracing "github.com/opentracing/opentracing-go"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )
@@ -18,7 +19,8 @@ type DialOption func(name string) (grpc.DialOption, error)
 // WithTracer traces rpc calls
 func WithTracer(tracer opentracing.Tracer) DialOption {
 	return func(name string) (grpc.DialOption, error) {
-		return grpc.WithUnaryInterceptor(otgrpc.OpenTracingClientInterceptor(tracer)), nil
+		//return grpc.WithUnaryInterceptor(otgrpc.OpenTracingClientInterceptor(tracer)), nil
+		return grpc.WithUnaryInterceptor(otelgrpc.UnaryClientInterceptor()), nil
 	}
 }
 
