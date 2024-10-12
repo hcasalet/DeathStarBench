@@ -68,3 +68,6 @@ Deploying instructions:
 
 7. Run the workload
   % ../wrk2/wrk -D exp -t20 -c1000 -d300s -L -s ./wrk2/scripts/hotel-reservation/mixed-workload_type_1.lua http://127.0.0.1:5000 -R1000
+
+8. Access trace and profile using port forwarding
+  % ssh -L 16686:0.0.0.0:16686 -L 4040:0.0.0.0:4040 <username@remotehost>
