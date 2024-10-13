@@ -1,15 +1,19 @@
 package tracing
 
 import (
-	"os"
-	"strconv"
-	"time"
+	"context"
 
-	"github.com/grafana/dskit/spanprofiler"
+	otelpyroscope "github.com/grafana/otel-profiling-go"
 	"github.com/grafana/pyroscope-go"
+
 	opentracing "github.com/opentracing/opentracing-go"
-	"github.com/rs/zerolog/log"
-	"github.com/uber/jaeger-client-go/config"
+
+	"go.opentelemetry.io/otel"
+	otelBridge "go.opentelemetry.io/otel/bridge/opentracing"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/sdk/resource"
+	"go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
 var (
@@ -18,38 +22,39 @@ var (
 
 // Init returns a newly configured tracer
 func Init(serviceName, host string) (opentracing.Tracer, error) {
-	ratio := defaultSampleRatio
-	if val, ok := os.LookupEnv("JAEGER_SAMPLE_RATIO"); ok {
-		ratio, _ = strconv.ParseFloat(val, 64)
-		if ratio > 1 {
-			ratio = 1.0
-		}
-	}
 
-	log.Info().Msgf("Jaeger client: adjusted sample ratio %f", ratio)
-	tempCfg := &config.Configuration{
-		ServiceName: serviceName,
-		Sampler: &config.SamplerConfig{
-			Type:  "probabilistic",
-			Param: ratio,
-		},
-		Reporter: &config.ReporterConfig{
-			LogSpans:            false,
-			BufferFlushInterval: 1 * time.Second,
-			LocalAgentHostPort:  host,
-		},
-	}
 
-	log.Info().Msg("Overriding Jaeger config with env variables")
-	cfg, err := tempCfg.FromEnv()
+	ctx := context.Background()
+
+	// Create the OTLP trace exporter
+	exp, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL("http://172.17.0.1:4318"))
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
-	tracer, _, err := cfg.NewTracer()
-	if err != nil {
-		return nil, err
-	}
+	res, err := resource.New(ctx,
+		resource.WithAttributes(
+			semconv.ServiceNameKey.String(serviceName),
+		),)
+
+	bsp := trace.NewBatchSpanProcessor(exp)
+	tp := trace.NewTracerProvider(trace.WithResource(res), trace.WithSpanProcessor(bsp))
+
+	// Create the OTLP trace provider with the exporter
+	// and wrap it with the pyroscope tracer provider
+	otelTracerProvider := otelpyroscope.NewTracerProvider(tp)
+	otelTracer := otelTracerProvider.Tracer(serviceName)
+
+	// Use the bridgeTracer as your OpenTracing tracer.
+	openTracingBridgeTracer, wrapperTracerProvider := otelBridge.NewTracerPair(otelTracer)
+	// Use the wrapped tracer in your application
+	opentracing.SetGlobalTracer(openTracingBridgeTracer)
+	otel.SetTracerProvider(wrapperTracerProvider)
+
+	// Set the wrapperTracerProvider as the global OpenTelemetry
+	// TracerProvider so instrumentation will use it by default.
+	// Wrap it with the tracer-profiler 
+	// wrappedTracer := spanprofiler.NewTracer(openTracingBridgeTracer)
 
 	pyroscope.Start(pyroscope.Config{
 		ApplicationName: serviceName,
@@ -57,8 +62,7 @@ func Init(serviceName, host string) (opentracing.Tracer, error) {
 		ServerAddress:   "http://172.17.0.1:4040",
 	
 		// you can disable logging by setting this to nil
-		Logger:          pyroscope.StandardLogger,
-		UploadRate:    1.0,
+		// Logger:          pyroscope.StandardLogger,
 	
 		// by default all profilers are enabled,
 		// but you can select the ones you want to use:
@@ -72,11 +76,6 @@ func Init(serviceName, host string) (opentracing.Tracer, error) {
 	  })
 	
 
-	// Wrap it with the tracer-profiler 
-	wrappedTracer := spanprofiler.NewTracer(tracer)
-	// Use the wrapped tracer in your application
-	opentracing.SetGlobalTracer(wrappedTracer)
-
-	return wrappedTracer, nil
+	return openTracingBridgeTracer, nil
 }
 
