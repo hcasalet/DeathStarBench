@@ -2,6 +2,7 @@ package tracing
 
 import (
 	"context"
+	"runtime"
 
 	otelpyroscope "github.com/grafana/otel-profiling-go"
 	"github.com/grafana/pyroscope-go"
@@ -14,6 +15,8 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+
+	"go.opentelemetry.io/otel/propagation"
 )
 
 var (
@@ -41,8 +44,11 @@ var (
 // 	}
 // }
 
+
 // Init returns a newly configured tracer
 func Init(serviceName, host string) (opentracing.Tracer, error) {
+
+	runtime.SetCPUProfileRate(2000)
 
 	ctx := context.Background()
 
@@ -71,6 +77,8 @@ func Init(serviceName, host string) (opentracing.Tracer, error) {
 	// Use the wrapped tracer in your application
 	opentracing.SetGlobalTracer(openTracingBridgeTracer)
 	otel.SetTracerProvider(wrapperTracerProvider)
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+
 
 	// Set the wrapperTracerProvider as the global OpenTelemetry
 	// TracerProvider so instrumentation will use it by default.

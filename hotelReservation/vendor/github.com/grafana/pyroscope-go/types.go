@@ -22,7 +22,7 @@ const (
 	ProfileMutexDuration ProfileType = "mutex_duration"
 	ProfileBlockCount    ProfileType = "block_count"
 	ProfileBlockDuration ProfileType = "block_duration"
-	DefaultSampleRate                = 100
+	DefaultSampleRate                = 1000
 )
 
 var DefaultProfileTypes = []ProfileType{
