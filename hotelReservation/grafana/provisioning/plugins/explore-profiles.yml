@@ -9,3 +9,4 @@ apps:
     secureJsonData:
       # uncomment this if sending data to Grafana Cloud
       # basicAuthPassword: PASSWORD
+

@@ -20,6 +20,27 @@ var (
 	defaultSampleRatio float64 = 1.0
 )
 
+// func InitTracer(serviceName string) func() {
+// 	exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+
+// 	tp := trace.NewTracerProvider(
+// 		trace.WithBatcher(exporter),
+// 		trace.WithResource(resource.NewWithAttributes(
+// 			semconv.SchemaURL,
+// 			semconv.ServiceNameKey.String(serviceName),
+// 		)),
+// 	)
+
+// 	otel.SetTracerProvider(tp)
+
+// 	return func() {
+// 		_ = tp.Shutdown(context.Background())
+// 	}
+// }
+
 // Init returns a newly configured tracer
 func Init(serviceName, host string) (opentracing.Tracer, error) {
 

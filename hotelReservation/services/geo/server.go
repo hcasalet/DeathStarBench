@@ -10,7 +10,6 @@ import (
 	pb "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/geo/proto"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/tls"
 	"github.com/google/uuid"
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/hailocab/go-geoindex"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
@@ -18,6 +17,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
+
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel"
 )
 
 const (
@@ -52,6 +54,9 @@ func (s *Server) Run() error {
 
 	s.uuid = uuid.New().String()
 
+	tp := otel.GetTracerProvider()
+	unaryInterceptor := otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp))
+
 	opts := []grpc.ServerOption{
 		grpc.KeepaliveParams(keepalive.ServerParameters{
 			Timeout: 120 * time.Second,
@@ -59,9 +64,11 @@ func (s *Server) Run() error {
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			PermitWithoutStream: true,
 		}),
-		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(s.Tracer),
-		),
+		// grpc.UnaryInterceptor(
+		// 	otgrpc.OpenTracingServerInterceptor(s.Tracer),
+		// ),
+		grpc.UnaryInterceptor(unaryInterceptor),
+
 	}
 
 	if tlsopt := tls.GetServerOpt(); tlsopt != nil {
