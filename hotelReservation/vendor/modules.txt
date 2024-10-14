@@ -49,9 +49,6 @@ github.com/grafana/pyroscope-go/godeltaprof/internal/pprof
 github.com/grpc-ecosystem/grpc-gateway/v2/internal/httprule
 github.com/grpc-ecosystem/grpc-gateway/v2/runtime
 github.com/grpc-ecosystem/grpc-gateway/v2/utilities
-# github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645
-## explicit
-github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc
 # github.com/hailocab/go-geoindex v0.0.0-20160127134810-64631bfe9711
 ## explicit
 github.com/hailocab/go-geoindex

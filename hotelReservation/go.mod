@@ -9,7 +9,6 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/grafana/otel-profiling-go v0.5.1
 	github.com/grafana/pyroscope-go v1.2.0
-	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645
 	github.com/hailocab/go-geoindex v0.0.0-20160127134810-64631bfe9711
 	github.com/hashicorp/consul/api v1.26.1
 	github.com/mbobakov/grpc-consul-resolver v1.5.3

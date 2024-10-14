@@ -72,8 +72,6 @@ github.com/grafana/pyroscope-go/godeltaprof v0.1.8 h1:iwOtYXeeVSAeYefJNaxDytgjKt
 github.com/grafana/pyroscope-go/godeltaprof v0.1.8/go.mod h1:2+l7K7twW49Ct4wFluZD3tZ6e0SjanjcUUBPVD/UuGU=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.22.0 h1:asbCHRVmodnJTuQ3qamDwqVOIjwqUPTYmYuemVOx+Ys=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.22.0/go.mod h1:ggCgvZ2r7uOoQjOyu2Y1NhHmEPPzzuhWgcza5M1Ji1I=
-github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645 h1:MJG/KsmcqMwFAkh8mTnAwhyKoB+sTAnY4CACC110tbU=
-github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645/go.mod h1:6iZfnjpejD4L/4DwD7NryNaJyCQdzwWwH2MWhCA90Kw=
 github.com/hailocab/go-geoindex v0.0.0-20160127134810-64631bfe9711 h1:Oi8hPOZX0gaM2sPVXse2bMpfOjP47a7O61YuB6Z4sGk=
 github.com/hailocab/go-geoindex v0.0.0-20160127134810-64631bfe9711/go.mod h1:+v2qJ3UZe4q2GfgZO4od004F/cMgJbmPSs7dD/ZMUkY=
 github.com/hashicorp/consul/api v1.26.1 h1:5oSXOO5fboPZeW5SN+TdGFP/BILDgBm19OrPZ/pICIM=
