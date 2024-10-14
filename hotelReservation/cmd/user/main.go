@@ -48,7 +48,7 @@ func main() {
 	flag.Parse()
 
 	log.Info().Msgf("Initializing jaeger agent [service name: %v | host: %v]...", "user", *jaegerAddr)
-	tracer, err := tracing.Init("user", *jaegerAddr)
+	err = tracing.Init("user", *jaegerAddr)
 	if err != nil {
 		log.Panic().Msgf("Got error while initializing jaeger agent: %v", err)
 	}
@@ -64,7 +64,7 @@ func main() {
 	srv := &user.Server{
 		Port:        servPort,
 		IpAddr:      servIP,
-		Tracer:      tracer,
+		// Tracer:      tracer,
 		Registry:    registry,
 		MongoClient: mongoClient,
 	}

@@ -45,7 +45,7 @@ func main() {
 	flag.Parse()
 
 	log.Info().Msgf("Initializing jaeger agent [service name: %v | host: %v]...", "search", *jaegerAddr)
-	tracer, err := tracing.Init("search", *jaegerAddr)
+	err = tracing.Init("search", *jaegerAddr)
 	if err != nil {
 		log.Panic().Msgf("Got error while initializing jaeger agent: %v", err)
 	}
@@ -59,7 +59,7 @@ func main() {
 	log.Info().Msg("Consul agent initialized")
 
 	srv := &search.Server{
-		Tracer:     tracer,
+		// Tracer:     tracer,
 		Port:       servPort,
 		IpAddr:     servIP,
 		ConsulAddr: *consulAddr,

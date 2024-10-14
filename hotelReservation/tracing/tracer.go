@@ -7,10 +7,7 @@ import (
 	otelpyroscope "github.com/grafana/otel-profiling-go"
 	"github.com/grafana/pyroscope-go"
 
-	opentracing "github.com/opentracing/opentracing-go"
-
 	"go.opentelemetry.io/otel"
-	otelBridge "go.opentelemetry.io/otel/bridge/opentracing"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
@@ -46,7 +43,7 @@ var (
 
 
 // Init returns a newly configured tracer
-func Init(serviceName, host string) (opentracing.Tracer, error) {
+func Init(serviceName, host string) ( error) {
 
 	runtime.SetCPUProfileRate(2000)
 
@@ -70,13 +67,13 @@ func Init(serviceName, host string) (opentracing.Tracer, error) {
 	// Create the OTLP trace provider with the exporter
 	// and wrap it with the pyroscope tracer provider
 	otelTracerProvider := otelpyroscope.NewTracerProvider(tp)
-	otelTracer := otelTracerProvider.Tracer(serviceName)
+	// otelTracer := otelTracerProvider.Tracer(serviceName)
 
 	// Use the bridgeTracer as your OpenTracing tracer.
-	openTracingBridgeTracer, wrapperTracerProvider := otelBridge.NewTracerPair(otelTracer)
+	// openTracingBridgeTracer, wrapperTracerProvider := otelBridge.NewTracerPair(otelTracer)
 	// Use the wrapped tracer in your application
-	opentracing.SetGlobalTracer(openTracingBridgeTracer)
-	otel.SetTracerProvider(wrapperTracerProvider)
+	// opentracing.SetGlobalTracer(openTracingBridgeTracer)
+	otel.SetTracerProvider(otelTracerProvider)
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 
 
@@ -107,6 +104,6 @@ func Init(serviceName, host string) (opentracing.Tracer, error) {
 
 
 
-	return openTracingBridgeTracer, nil
+	return err
 }
 

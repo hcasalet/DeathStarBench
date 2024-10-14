@@ -43,7 +43,7 @@ func main() {
 	)
 	flag.Parse()
 	log.Info().Msgf("Initializing jaeger agent [service name: %v | host: %v]...", "frontend", *jaegerAddr)
-	tracer, err := tracing.Init("frontend", *jaegerAddr)
+	 err = tracing.Init("frontend", *jaegerAddr)
 	// tracerfunc := tracing.InitTracer("frontend")
 	if err != nil {
 		log.Panic().Msgf("Got error while initializing jaeger agent: %v", err)
@@ -62,7 +62,7 @@ func main() {
 	srv := &frontend.Server{
 		KnativeDns: knativeDNS,
 		Registry:   registry,
-		Tracer:     tracer,
+		// Tracer:     tracer,
 		IpAddr:     servIP,
 		ConsulAddr: *consulAddr,
 		Port:       servPort,
