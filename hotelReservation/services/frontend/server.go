@@ -92,7 +92,7 @@ func (s *Server) Run() error {
 	log.Info().Msg("Successful")
 
 	log.Trace().Msg("frontend before mux")
-	mux := tracing.NewServeMux(s.Tracer)
+	mux := tracing.OtelNewServeMux()
 	mux.Handle("/", http.FileServer(http.FS(staticContent)))
 	mux.Handle("/hotels", http.HandlerFunc(s.searchHandler))
 	mux.Handle("/recommendations", http.HandlerFunc(s.recommendHandler))

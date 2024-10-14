@@ -23,8 +23,8 @@ var (
 // Init returns a newly configured tracer
 func Init(serviceName, host string) (opentracing.Tracer, error) {
 
-
 	ctx := context.Background()
+
 
 	// Create the OTLP trace exporter
 	exp, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL("http://172.17.0.1:4318"))
@@ -38,7 +38,7 @@ func Init(serviceName, host string) (opentracing.Tracer, error) {
 		),)
 
 	bsp := trace.NewBatchSpanProcessor(exp)
-	tp := trace.NewTracerProvider(trace.WithResource(res), trace.WithSpanProcessor(bsp))
+	tp := trace.NewTracerProvider(trace.WithResource(res), trace.WithSpanProcessor(bsp), trace.WithSampler(trace.AlwaysSample()))
 
 	// Create the OTLP trace provider with the exporter
 	// and wrap it with the pyroscope tracer provider
@@ -56,6 +56,7 @@ func Init(serviceName, host string) (opentracing.Tracer, error) {
 	// Wrap it with the tracer-profiler 
 	// wrappedTracer := spanprofiler.NewTracer(openTracingBridgeTracer)
 
+
 	pyroscope.Start(pyroscope.Config{
 		ApplicationName: serviceName,
 		// replace this with the address of pyroscope server
@@ -66,15 +67,16 @@ func Init(serviceName, host string) (opentracing.Tracer, error) {
 	
 		// by default all profilers are enabled,
 		// but you can select the ones you want to use:
-		ProfileTypes: []pyroscope.ProfileType{
-		  pyroscope.ProfileCPU,
-		  pyroscope.ProfileAllocObjects,
-		  pyroscope.ProfileAllocSpace,
-		  pyroscope.ProfileInuseObjects,
-		  pyroscope.ProfileInuseSpace,
-		},
+		// ProfileTypes: []pyroscope.ProfileType{
+		//   pyroscope.ProfileCPU,
+		//   pyroscope.ProfileAllocObjects,
+		//   pyroscope.ProfileAllocSpace,
+		//   pyroscope.ProfileInuseObjects,
+		//   pyroscope.ProfileInuseSpace,
+		// },
 	  })
-	
+
+
 
 	return openTracingBridgeTracer, nil
 }
