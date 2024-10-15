@@ -10,7 +10,6 @@ import (
 	pb "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/user/proto"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/tls"
 	"github.com/google/uuid"
-	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -30,7 +29,6 @@ type Server struct {
 	users map[string]string
 	uuid  string
 
-	Tracer      opentracing.Tracer
 	Registry    *registry.Client
 	Port        int
 	IpAddr      string

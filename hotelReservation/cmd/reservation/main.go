@@ -46,17 +46,15 @@ func main() {
 	servIP := result["ReserveIP"]
 
 	var (
-		jaegerAddr = flag.String("jaegeraddr", result["jaegerAddress"], "Jaeger address")
 		consulAddr = flag.String("consuladdr", result["consulAddress"], "Consul address")
 	)
 	flag.Parse()
 
-	log.Info().Msgf("Initializing jaeger agent [service name: %v | host: %v]...", "reservation", *jaegerAddr)
-	err = tracing.Init("reservation", *jaegerAddr)
+	err = tracing.Init("reservation")
 	if err != nil {
-		log.Panic().Msgf("Got error while initializing jaeger agent: %v", err)
+		log.Panic().Msgf("Got error while initializing open telemetry agent: %v", err)
 	}
-	log.Info().Msg("Jaeger agent initialized")
+	log.Info().Msg("Tracing agent initialized")
 
 	log.Info().Msgf("Initializing consul agent [host: %v]...", *consulAddr)
 	registry, err := registry.NewClient(*consulAddr)
@@ -66,7 +64,6 @@ func main() {
 	log.Info().Msg("Consul agent initialized")
 
 	srv := &reservation.Server{
-		// Tracer:      tracer,
 		Registry:    registry,
 		Port:        servPort,
 		IpAddr:      servIP,

@@ -11,7 +11,6 @@ import (
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/tls"
 	"github.com/google/uuid"
 	"github.com/hailocab/go-geoindex"
-	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -36,7 +35,6 @@ type Server struct {
 	uuid  string
 
 	Registry    *registry.Client
-	Tracer      opentracing.Tracer
 	Port        int
 	IpAddr      string
 	MongoClient *mongo.Client
@@ -64,9 +62,6 @@ func (s *Server) Run() error {
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			PermitWithoutStream: true,
 		}),
-		// grpc.UnaryInterceptor(
-		// 	otgrpc.OpenTracingServerInterceptor(s.Tracer),
-		// ),
 		grpc.UnaryInterceptor(unaryInterceptor),
 
 	}

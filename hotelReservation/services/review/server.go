@@ -27,6 +27,7 @@ import (
 
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 
 	// "strings"
 
@@ -39,7 +40,6 @@ const name = "srv-review"
 type Server struct {
 	pb.UnimplementedReviewServer
 
-	Tracer      opentracing.Tracer
 	Port        int
 	IpAddr      string
 	MongoClient *mongo.Client
@@ -124,10 +124,12 @@ func (s *Server) GetReviews(ctx context.Context, req *pb.Request) (*pb.Result, e
 
 	hotelId := req.HotelId
 
-	memSpan, _ := opentracing.StartSpanFromContext(ctx, "memcached_get_review")
-	memSpan.SetTag("span.kind", "client")
+	tracer := otel.GetTracerProvider().Tracer(uuid.NewString())
+
+	_, memSpan := tracer.Start(ctx, "memcached_get_review")
+	memSpan.SetAttributes(attribute.String("span.kind", "client"))
 	item, err := s.MemcClient.Get(hotelId)
-	memSpan.Finish()
+	memSpan.End()
 	if err != nil && err != memcache.ErrCacheMiss {
 		log.Panic().Msgf("Tried to get hotelId [%v], but got memmcached error = %s", hotelId, err)
 	} else {

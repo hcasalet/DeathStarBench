@@ -39,7 +39,6 @@ type Server struct {
 	uuid   string
 
 	Registry    *registry.Client
-	Tracer      opentracing.Tracer
 	Port        int
 	IpAddr      string
 	MongoClient *mongo.Client
@@ -79,9 +78,6 @@ func (s *Server) Run() error {
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			PermitWithoutStream: true,
 		}),
-		// grpc.UnaryInterceptor(
-		// 	otgrpc.OpenTracingServerInterceptor(s.Tracer),
-		// ),
 		grpc.UnaryInterceptor(unaryInterceptor),
 
 	}

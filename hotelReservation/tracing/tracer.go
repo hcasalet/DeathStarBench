@@ -43,7 +43,7 @@ var (
 
 
 // Init returns a newly configured tracer
-func Init(serviceName, host string) ( error) {
+func Init(serviceName string) ( error) {
 
 	runtime.SetCPUProfileRate(2000)
 
