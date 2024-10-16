@@ -320,17 +320,18 @@ func (s *Server) CheckAvailability(ctx context.Context, req *pb.Request) (*pb.Re
 	}
 
 
-	_, reserveMemSpan := tracer.Start(ctx,"memcached_capacity_get_multi_number")
+	_, reserveMemSpan := tracer.Start(ctx,"memcached_reserve_get_multi_number")
 	reserveMemSpan.SetAttributes(attribute.String("span.kind", "client"))
+
+	itemsMap, err := s.MemcClient.GetMulti(reqCommand)
+	reserveMemSpan.End()
 
 
 	ch := make(chan taskRes)
 	// check capacity in memcached and mongodb
-	if itemsMap, err := s.MemcClient.GetMulti(reqCommand); err != nil && err != memcache.ErrCacheMiss {
-		reserveMemSpan.End()
+	if  err != nil && err != memcache.ErrCacheMiss {
 		log.Panic().Msgf("Tried to get memc_key [%v], but got memmcached error = %s", reqCommand, err)
 	} else {
-		reserveMemSpan.End()
 		// go through reservation count from memcached
 		go func() {
 			for k, v := range itemsMap {
@@ -394,7 +395,13 @@ func (s *Server) CheckAvailability(ctx context.Context, req *pb.Request) (*pb.Re
 						count += r.Number
 					}
 					// update memcached
-					go s.MemcClient.Set(&memcache.Item{Key: comm, Value: []byte(strconv.Itoa(count))})
+					go func(item *memcache.Item){
+						_, memSpan := tracer.Start(ctx,"memcached_capacity_set_multi_number")
+						memSpan.SetAttributes(attribute.String("span.kind", "client"))
+						s.MemcClient.Set(item)
+						memSpan.End()
+					}(&memcache.Item{Key: comm, Value: []byte(strconv.Itoa(count))})
+
 					var res bool
 					if count+int(req.RoomNumber) <= cacheCap[queryItem["hotelId"]] {
 						res = true

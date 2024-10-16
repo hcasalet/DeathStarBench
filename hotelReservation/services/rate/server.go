@@ -143,8 +143,6 @@ func (s *Server) GetRates(ctx context.Context, req *pb.Request) (*pb.Result, err
 				log.Trace().Msgf("memc miss, hotelId = %s", id)
 				log.Trace().Msg("memcached miss, set up mongo connection")
 
-
-	
 				_, mongoSpan := tracer.Start(ctx,"mongo_rate")
 				mongoSpan.SetAttributes(attribute.String("span.kind", "client"))
 			
@@ -178,7 +176,14 @@ func (s *Server) GetRates(ctx context.Context, req *pb.Request) (*pb.Result, err
 						memcStr = memcStr + string(rateJson) + "\n"
 					}
 				}
-				go s.MemcClient.Set(&memcache.Item{Key: id, Value: []byte(memcStr)})
+
+				go func(item *memcache.Item){
+					_, memSpan := tracer.Start(ctx,"memcached_set_rate")
+					memSpan.SetAttributes(attribute.String("span.kind", "client"))
+					s.MemcClient.Set(item)
+					memSpan.End()
+
+				}(&memcache.Item{Key: id, Value: []byte(memcStr)})
 
 				defer wg.Done()
 			}(hotelId)
