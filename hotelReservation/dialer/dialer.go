@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/tls"
-	//"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	consul "github.com/hashicorp/consul/api"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"

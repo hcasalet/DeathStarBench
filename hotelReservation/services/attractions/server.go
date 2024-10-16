@@ -11,7 +11,6 @@ import (
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/tls"
 	"github.com/google/uuid"
 	"github.com/hailocab/go-geoindex"
-	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -20,6 +19,7 @@ import (
 
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 const (
@@ -114,8 +114,9 @@ func (s *Server) Shutdown() {
 func (s *Server) NearbyRest(ctx context.Context, req *pb.Request) (*pb.Result, error) {
 	log.Trace().Msgf("In Attractions NearbyRest")
 
-	mongoSpan, _ := opentracing.StartSpanFromContext(ctx, "mongo_restaurant")
-	mongoSpan.SetTag("span.kind", "client")
+	tracer := otel.GetTracerProvider().Tracer(uuid.NewString())
+	_, mongoSpan := tracer.Start(ctx,"mongo_restaurant")
+	mongoSpan.SetAttributes(attribute.String("span.kind", "client"))
 
 	c := s.MongoClient.Database("attractions-db").Collection("hotels")
 
@@ -125,6 +126,7 @@ func (s *Server) NearbyRest(ctx context.Context, req *pb.Request) (*pb.Result, e
 	}
 	var hotelReqs []point
 	curr.All(context.TODO(), &hotelReqs)
+	mongoSpan.End()
 
 	var hotelReq point
 
@@ -151,8 +153,9 @@ func (s *Server) NearbyRest(ctx context.Context, req *pb.Request) (*pb.Result, e
 func (s *Server) NearbyMus(ctx context.Context, req *pb.Request) (*pb.Result, error) {
 	log.Trace().Msgf("In Attractions NearbyMus")
 
-	mongoSpan, _ := opentracing.StartSpanFromContext(ctx, "mongo_museum")
-	mongoSpan.SetTag("span.kind", "client")
+	tracer := otel.GetTracerProvider().Tracer(uuid.NewString())
+	_, mongoSpan := tracer.Start(ctx,"mongo_museum")
+	mongoSpan.SetAttributes(attribute.String("span.kind", "client"))
 
 	c := s.MongoClient.Database("attractions-db").Collection("hotels")
 
@@ -162,6 +165,7 @@ func (s *Server) NearbyMus(ctx context.Context, req *pb.Request) (*pb.Result, er
 	}
 	var hotelReqs []point
 	curr.All(context.TODO(), &hotelReqs)
+	mongoSpan.End()
 
 	var hotelReq point
 
@@ -188,8 +192,10 @@ func (s *Server) NearbyMus(ctx context.Context, req *pb.Request) (*pb.Result, er
 func (s *Server) NearbyCinema(ctx context.Context, req *pb.Request) (*pb.Result, error) {
 	log.Trace().Msgf("In Attractions NearbyCinema")
 
-	mongoSpan, _ := opentracing.StartSpanFromContext(ctx, "mongo_cinema")
-	mongoSpan.SetTag("span.kind", "client")
+	tracer := otel.GetTracerProvider().Tracer(uuid.NewString())
+
+	_, mongoSpan := tracer.Start(ctx,"mongo_cinema")
+	mongoSpan.SetAttributes(attribute.String("span.kind", "client"))
 
 	c := s.MongoClient.Database("attractions-db").Collection("hotels")
 
@@ -199,6 +205,7 @@ func (s *Server) NearbyCinema(ctx context.Context, req *pb.Request) (*pb.Result,
 	}
 	var hotelReqs []point
 	curr.All(context.TODO(), &hotelReqs)
+	mongoSpan.End()
 
 	var hotelReq point
 

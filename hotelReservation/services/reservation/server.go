@@ -14,7 +14,6 @@ import (
 	pb "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/reservation/proto"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/tls"
 	"github.com/google/uuid"
-	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -268,8 +267,10 @@ func (s *Server) CheckAvailability(ctx context.Context, req *pb.Request) (*pb.Re
 			queryMissKeys = append(queryMissKeys, strings.Split(k, "_")[0])
 		}
 		var nums []number
-		capMongoSpan, _ := opentracing.StartSpanFromContext(ctx, "mongodb_capacity_get_multi_number")
-		capMongoSpan.SetTag("span.kind", "client")
+
+		_, capMongoSpan := tracer.Start(ctx,"mongodb_capacity_get_multi_number")
+		capMongoSpan.SetAttributes(attribute.String("span.kind", "client"))
+
 		curr, err := numCollection.Find(context.TODO(), bson.D{{"$in", queryMissKeys}})
 		if err != nil {
 			log.Error().Msgf("Failed get reservation number data: ", err)
@@ -278,7 +279,7 @@ func (s *Server) CheckAvailability(ctx context.Context, req *pb.Request) (*pb.Re
 		if err != nil {
 			log.Error().Msgf("Failed get reservation number data: ", err)
 		}
-		capMongoSpan.Finish()
+		capMongoSpan.End()
 		if err != nil {
 			log.Panic().Msgf("Tried to find hotelId [%v], but got error", misKeys, err.Error())
 		}
@@ -370,8 +371,9 @@ func (s *Server) CheckAvailability(ctx context.Context, req *pb.Request) (*pb.Re
 					resCollection := s.MongoClient.Database("reservation-db").Collection("reservation")
 					filter := bson.D{{"hotelId", queryItem["hotelId"]}, {"inDate", queryItem["startDate"]}, {"outDate", queryItem["endDate"]}}
 
-					reserveMongoSpan, _ := opentracing.StartSpanFromContext(ctx, "mongodb_capacity_get_multi_number"+comm)
-					reserveMongoSpan.SetTag("span.kind", "client")
+					_, reserveMongoSpan := tracer.Start(ctx,"mongodb_capacity_get_multi_number"+comm)
+					reserveMongoSpan.SetAttributes(attribute.String("span.kind", "client"))
+
 					curr, err := resCollection.Find(context.TODO(), filter)
 					if err != nil {
 						log.Error().Msgf("Failed get reservation data: ", err)
@@ -380,7 +382,7 @@ func (s *Server) CheckAvailability(ctx context.Context, req *pb.Request) (*pb.Re
 					if err != nil {
 						log.Error().Msgf("Failed get reservation data: ", err)
 					}
-					reserveMongoSpan.Finish()
+					reserveMongoSpan.End()
 
 					if err != nil {
 						log.Panic().Msgf("Tried to find hotelId [%v] from date [%v] to date [%v], but got error",

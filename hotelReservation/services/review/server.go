@@ -20,7 +20,6 @@ import (
 	pb "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/review/proto"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/tls"
 	"github.com/google/uuid"
-	"github.com/opentracing/opentracing-go"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
@@ -50,7 +49,6 @@ type Server struct {
 
 // Run starts the server
 func (s *Server) Run() error {
-	// opentracing.SetGlobalTracer(s.Tracer)
 
 	if s.Port == 0 {
 		return fmt.Errorf("server port must be set")
@@ -134,8 +132,8 @@ func (s *Server) GetReviews(ctx context.Context, req *pb.Request) (*pb.Result, e
 		log.Panic().Msgf("Tried to get hotelId [%v], but got memmcached error = %s", hotelId, err)
 	} else {
 		if err == memcache.ErrCacheMiss {
-			mongoSpan, _ := opentracing.StartSpanFromContext(ctx, "mongo_review")
-			mongoSpan.SetTag("span.kind", "client")
+			_, mongoSpan := tracer.Start(ctx, "mongo_review")
+			mongoSpan.SetAttributes(attribute.String("span.kind", "client"))
 
 			//session := s.MongoSession.Copy()
 			//defer session.Close()
@@ -153,6 +151,7 @@ func (s *Server) GetReviews(ctx context.Context, req *pb.Request) (*pb.Result, e
 			if err != nil {
 				log.Error().Msgf("Failed get hotels data: ", err)
 			}
+			mongoSpan.End()
 
 			for _, reviewHelper := range reviewHelpers {
 				revComm := pb.ReviewComm{
