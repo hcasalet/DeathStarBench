@@ -14,15 +14,17 @@ import (
 	pb "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/reservation/proto"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/tls"
 	"github.com/google/uuid"
-	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
-	"go.opentelemetry.io/otel"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
+
 
 const name = "srv-reservation"
 
@@ -32,7 +34,6 @@ type Server struct {
 
 	uuid string
 
-	Tracer      opentracing.Tracer
 	Port        int
 	IpAddr      string
 	MongoClient *mongo.Client
@@ -42,7 +43,6 @@ type Server struct {
 
 // Run starts the server
 func (s *Server) Run() error {
-	opentracing.SetGlobalTracer(s.Tracer)
 
 	if s.Port == 0 {
 		return fmt.Errorf("server port must be set")
@@ -60,9 +60,6 @@ func (s *Server) Run() error {
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			PermitWithoutStream: true,
 		}),
-		//grpc.UnaryInterceptor(
-		//	otgrpc.OpenTracingServerInterceptor(s.Tracer),
-		//),
 		grpc.UnaryInterceptor(unaryInterceptor),
 	}
 
@@ -237,10 +234,13 @@ func (s *Server) CheckAvailability(ctx context.Context, req *pb.Request) (*pb.Re
 		keysMap[hotelId+"_cap"] = struct{}{}
 	}
 
-	capMemSpan, _ := opentracing.StartSpanFromContext(ctx, "memcached_capacity_get_multi_number")
-	capMemSpan.SetTag("span.kind", "client")
+	tracer := otel.GetTracerProvider().Tracer(uuid.NewString())
+
+	_, capMemSpan := tracer.Start(ctx,"memcached_capacity_get_multi_number")
+	capMemSpan.SetAttributes(attribute.String("span.kind", "client"))
+
 	cacheMemRes, err := s.MemcClient.GetMulti(hotelMemKeys)
-	capMemSpan.Finish()
+	capMemSpan.End()
 
 	numCollection := s.MongoClient.Database("reservation-db").Collection("number")
 
@@ -267,8 +267,10 @@ func (s *Server) CheckAvailability(ctx context.Context, req *pb.Request) (*pb.Re
 			queryMissKeys = append(queryMissKeys, strings.Split(k, "_")[0])
 		}
 		var nums []number
-		capMongoSpan, _ := opentracing.StartSpanFromContext(ctx, "mongodb_capacity_get_multi_number")
-		capMongoSpan.SetTag("span.kind", "client")
+
+		_, capMongoSpan := tracer.Start(ctx,"mongodb_capacity_get_multi_number")
+		capMongoSpan.SetAttributes(attribute.String("span.kind", "client"))
+
 		curr, err := numCollection.Find(context.TODO(), bson.D{{"$in", queryMissKeys}})
 		if err != nil {
 			log.Error().Msgf("Failed get reservation number data: ", err)
@@ -277,7 +279,7 @@ func (s *Server) CheckAvailability(ctx context.Context, req *pb.Request) (*pb.Re
 		if err != nil {
 			log.Error().Msgf("Failed get reservation number data: ", err)
 		}
-		capMongoSpan.Finish()
+		capMongoSpan.End()
 		if err != nil {
 			log.Panic().Msgf("Tried to find hotelId [%v], but got error", misKeys, err.Error())
 		}
@@ -316,15 +318,20 @@ func (s *Server) CheckAvailability(ctx context.Context, req *pb.Request) (*pb.Re
 		hotelId  string
 		checkRes bool
 	}
-	reserveMemSpan, _ := opentracing.StartSpanFromContext(ctx, "memcached_reserve_get_multi_number")
+
+
+	_, reserveMemSpan := tracer.Start(ctx,"memcached_reserve_get_multi_number")
+	reserveMemSpan.SetAttributes(attribute.String("span.kind", "client"))
+
+	itemsMap, err := s.MemcClient.GetMulti(reqCommand)
+	reserveMemSpan.End()
+
+
 	ch := make(chan taskRes)
-	reserveMemSpan.SetTag("span.kind", "client")
 	// check capacity in memcached and mongodb
-	if itemsMap, err := s.MemcClient.GetMulti(reqCommand); err != nil && err != memcache.ErrCacheMiss {
-		reserveMemSpan.Finish()
+	if  err != nil && err != memcache.ErrCacheMiss {
 		log.Panic().Msgf("Tried to get memc_key [%v], but got memmcached error = %s", reqCommand, err)
 	} else {
-		reserveMemSpan.Finish()
 		// go through reservation count from memcached
 		go func() {
 			for k, v := range itemsMap {
@@ -365,8 +372,9 @@ func (s *Server) CheckAvailability(ctx context.Context, req *pb.Request) (*pb.Re
 					resCollection := s.MongoClient.Database("reservation-db").Collection("reservation")
 					filter := bson.D{{"hotelId", queryItem["hotelId"]}, {"inDate", queryItem["startDate"]}, {"outDate", queryItem["endDate"]}}
 
-					reserveMongoSpan, _ := opentracing.StartSpanFromContext(ctx, "mongodb_capacity_get_multi_number"+comm)
-					reserveMongoSpan.SetTag("span.kind", "client")
+					_, reserveMongoSpan := tracer.Start(ctx,"mongodb_capacity_get_multi_number"+comm)
+					reserveMongoSpan.SetAttributes(attribute.String("span.kind", "client"))
+
 					curr, err := resCollection.Find(context.TODO(), filter)
 					if err != nil {
 						log.Error().Msgf("Failed get reservation data: ", err)
@@ -375,7 +383,7 @@ func (s *Server) CheckAvailability(ctx context.Context, req *pb.Request) (*pb.Re
 					if err != nil {
 						log.Error().Msgf("Failed get reservation data: ", err)
 					}
-					reserveMongoSpan.Finish()
+					reserveMongoSpan.End()
 
 					if err != nil {
 						log.Panic().Msgf("Tried to find hotelId [%v] from date [%v] to date [%v], but got error",
@@ -387,7 +395,13 @@ func (s *Server) CheckAvailability(ctx context.Context, req *pb.Request) (*pb.Re
 						count += r.Number
 					}
 					// update memcached
-					go s.MemcClient.Set(&memcache.Item{Key: comm, Value: []byte(strconv.Itoa(count))})
+					go func(item *memcache.Item){
+						_, memSpan := tracer.Start(ctx,"memcached_capacity_set_multi_number")
+						memSpan.SetAttributes(attribute.String("span.kind", "client"))
+						s.MemcClient.Set(item)
+						memSpan.End()
+					}(&memcache.Item{Key: comm, Value: []byte(strconv.Itoa(count))})
+
 					var res bool
 					if count+int(req.RoomNumber) <= cacheCap[queryItem["hotelId"]] {
 						res = true

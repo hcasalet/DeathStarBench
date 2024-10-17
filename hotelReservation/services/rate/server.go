@@ -15,13 +15,15 @@ import (
 	pb "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/rate/proto"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/tls"
 	"github.com/google/uuid"
-	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
-	"github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
+
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 const name = "srv-rate"
@@ -32,23 +34,26 @@ type Server struct {
 
 	uuid string
 
-	Tracer      opentracing.Tracer
 	Port        int
 	IpAddr      string
 	MongoClient *mongo.Client
 	Registry    *registry.Client
 	MemcClient  *memcache.Client
+
 }
 
 // Run starts the server
 func (s *Server) Run() error {
-	opentracing.SetGlobalTracer(s.Tracer)
 
 	if s.Port == 0 {
 		return fmt.Errorf("server port must be set")
 	}
 
 	s.uuid = uuid.New().String()
+
+	tp := otel.GetTracerProvider()
+	unaryInterceptor := otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp))
+
 
 	opts := []grpc.ServerOption{
 		grpc.KeepaliveParams(keepalive.ServerParameters{
@@ -57,9 +62,10 @@ func (s *Server) Run() error {
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			PermitWithoutStream: true,
 		}),
-		grpc.UnaryInterceptor(
-			otgrpc.OpenTracingServerInterceptor(s.Tracer),
-		),
+		//grpc.UnaryInterceptor(
+		//	otgrpc.OpenTracingServerInterceptor(s.Tracer),
+		//),
+		grpc.UnaryInterceptor(unaryInterceptor),
 	}
 
 	if tlsopt := tls.GetServerOpt(); tlsopt != nil {
@@ -102,11 +108,14 @@ func (s *Server) GetRates(ctx context.Context, req *pb.Request) (*pb.Result, err
 		rateMap[hotelID] = struct{}{}
 	}
 	// first check memcached(get-multi)
-	memSpan, _ := opentracing.StartSpanFromContext(ctx, "memcached_get_multi_rate")
-	memSpan.SetTag("span.kind", "client")
+	tracer := otel.GetTracerProvider().Tracer(uuid.NewString())
+	
+	_, memSpan := tracer.Start(ctx,"memcached_get_multi_rate")
+	memSpan.SetAttributes(attribute.String("span.kind", "client"))
+
 
 	resMap, err := s.MemcClient.GetMulti(hotelIds)
-	memSpan.Finish()
+	memSpan.End()
 
 	var wg sync.WaitGroup
 	var mutex sync.Mutex
@@ -134,9 +143,9 @@ func (s *Server) GetRates(ctx context.Context, req *pb.Request) (*pb.Result, err
 				log.Trace().Msgf("memc miss, hotelId = %s", id)
 				log.Trace().Msg("memcached miss, set up mongo connection")
 
-				mongoSpan, _ := opentracing.StartSpanFromContext(ctx, "mongo_rate")
-				mongoSpan.SetTag("span.kind", "client")
-
+				_, mongoSpan := tracer.Start(ctx,"mongo_rate")
+				mongoSpan.SetAttributes(attribute.String("span.kind", "client"))
+			
 				// memcached miss, set up mongo connection
 				collection := s.MongoClient.Database("rate-db").Collection("inventory")
 				curr, err := collection.Find(context.TODO(), bson.D{})
@@ -150,7 +159,7 @@ func (s *Server) GetRates(ctx context.Context, req *pb.Request) (*pb.Result, err
 					log.Error().Msgf("Failed get rate data: ", err)
 				}
 
-				mongoSpan.Finish()
+				mongoSpan.End()
 
 				memcStr := ""
 				if err != nil {
@@ -167,7 +176,14 @@ func (s *Server) GetRates(ctx context.Context, req *pb.Request) (*pb.Result, err
 						memcStr = memcStr + string(rateJson) + "\n"
 					}
 				}
-				go s.MemcClient.Set(&memcache.Item{Key: id, Value: []byte(memcStr)})
+
+				go func(item *memcache.Item){
+					_, memSpan := tracer.Start(ctx,"memcached_set_rate")
+					memSpan.SetAttributes(attribute.String("span.kind", "client"))
+					s.MemcClient.Set(item)
+					memSpan.End()
+
+				}(&memcache.Item{Key: id, Value: []byte(memcStr)})
 
 				defer wg.Done()
 			}(hotelId)

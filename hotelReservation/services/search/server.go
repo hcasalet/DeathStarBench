@@ -13,7 +13,6 @@ import (
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/tls"
 	"github.com/google/uuid"
 	_ "github.com/mbobakov/grpc-consul-resolver"
-	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
@@ -32,7 +31,6 @@ type Server struct {
 	rateClient rate.RateClient
 	uuid       string
 
-	Tracer     opentracing.Tracer
 	Port       int
 	IpAddr     string
 	ConsulAddr string
@@ -120,11 +118,11 @@ func (s *Server) getGprcConn(name string) (*grpc.ClientConn, error) {
 	if s.KnativeDns != "" {
 		return dialer.Dial(
 			fmt.Sprintf("consul://%s/%s.%s", s.ConsulAddr, name, s.KnativeDns),
-			dialer.WithTracer(s.Tracer))
+			dialer.WithTracer())
 	} else {
 		return dialer.Dial(
 			fmt.Sprintf("consul://%s/%s", s.ConsulAddr, name),
-			dialer.WithTracer(s.Tracer),
+			dialer.WithTracer(),
 			dialer.WithBalancer(s.Registry.Client),
 		)
 	}

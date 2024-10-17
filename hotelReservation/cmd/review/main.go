@@ -58,17 +58,15 @@ func main() {
 
 	var (
 		// port       = flag.Int("port", 8081, "The server port")
-		jaegeraddr = flag.String("jaegeraddr", result["jaegerAddress"], "Jaeger server addr")
 		consuladdr = flag.String("consuladdr", result["consulAddress"], "Consul address")
 	)
 	flag.Parse()
 
-	log.Info().Msgf("Initializing jaeger agent [service name: %v | host: %v]...", "review", *jaegeraddr)
-	tracer, err := tracing.Init("review", *jaegeraddr)
+	err = tracing.Init("review")
 	if err != nil {
-		log.Panic().Msgf("Got error while initializing jaeger agent: %v", err)
+		log.Panic().Msgf("Got error while initializing open telemetry agent: %v", err)
 	}
-	log.Info().Msg("Jaeger agent initialized")
+	log.Info().Msg("Tracing agent initialized")
 
 	log.Info().Msgf("Initializing consul agent [host: %v]...", *consuladdr)
 	registry, err := registry.NewClient(*consuladdr)
@@ -78,7 +76,6 @@ func main() {
 	log.Info().Msg("Consul agent initialized")
 
 	srv := review.Server{
-		Tracer: tracer,
 		// Port:     *port,
 		Registry:    registry,
 		Port:        serv_port,
