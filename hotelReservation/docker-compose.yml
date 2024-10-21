@@ -2,6 +2,18 @@ version: "3.8"
 
 services:
 
+  alloy:
+    image: grafana/alloy:latest
+    volumes:
+    - ./alloy/alloy.config:/etc/alloy/alloy.config
+    - /var/run/docker.sock:/var/run/docker.sock
+    pid: host
+    privileged: true
+    ports:
+      - "12345:12345"
+    command: run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/alloy.config
+
+
   tempo:
     image: grafana/tempo:latest
     command: [ "-config.file=/etc/tempo.yml" ]
