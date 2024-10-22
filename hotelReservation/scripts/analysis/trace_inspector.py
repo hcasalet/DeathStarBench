@@ -2,49 +2,6 @@ import json
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-
-# class TraceSet:
-#     def __init__(self, trace_file):
-#         self.trace_file = trace_file
-#         self.traces = self.load_traces()
-
-
-
-class Trace:
-    def __init__(self, trace_id, root_span):
-        self.trace_id = trace_id
-        self.root_span: Span = root_span
-
-    def rank_span_durations(self):
-        # span_durations = {}
-        
-        
-        # for child in self.root_span.children:
-        #     span_durations[child.span_id] = child.get_span_duration(child)
-
-        
-        pass
-    
-    def rank_client_server_duration_gap(self):
-        pass
-    
-
-# def convert_unix_nano_to_datetime(unix_nano_str):
-#     # Convert the string to an integer
-#     unix_nano = int(unix_nano_str)
-    
-#     # Calculate the seconds and remaining nanoseconds
-#     seconds = unix_nano // 1_000_000_000
-#     nanoseconds = unix_nano % 1_000_000_000
-    
-#     # Create a datetime object for the Unix epoch
-#     epoch = datetime(1970, 1, 1)
-    
-#     # Add the seconds and nanoseconds to the epoch
-#     result_datetime = epoch + timedelta(seconds=seconds, microseconds=nanoseconds / 1000)
-    
-#     return result_datetime
-
 class Span:
     def __init__(self, trace_id,span_id, parent_span_id, service, operation_name,kind, start_time, end_time):
         self.trace_id = trace_id
@@ -73,12 +30,29 @@ class Span:
     def get_span_duration(self, span):
         return int(span.end_time) - int(span.start_time)
     
-    def get_span_proportional_duration_of_root(self, span_id):
-        span = self.get_span(span_id)
-        if span:
-            return self.get_span_duration(span) / self.get_span_duration(self)
+
+    # def get_span_proportional_duration_of_root(self, span_id):
+    #     span = self.get_span(span_id)
+    #     if span:
+    #         return self.get_span_duration(span) / self.get_span_duration(span.get_root_span())
+    #     return None
+        
+    def get_start_gap_duration_of_parent(self, span):
+        parent_span = self.get_span(span.parent_span_id)
+        if parent_span:
+            return  int(span.start_time) - int(parent_span.start_time)
         return None
     
+    def get_end_gap_duration_of_parent(self, span):
+        parent_span = self.get_span(span.parent_span_id)
+        if parent_span:
+            return  int(parent_span.end_time) - int(span.end_time)
+        return None
+    
+    def get_gap_durations_of_parent(self, span):
+        return span.get_start_gap_duration_of_parent(span), span.get_end_gap_duration_of_parent(span)
+    
+        
     def rank_longest_leaf_spans(self):
         leaf_spans = self._find_leaf_spans()
         leaf_spans.sort(key=lambda span: self.get_span_duration(span), reverse=True)
@@ -91,7 +65,6 @@ class Span:
         for child in self.children:
             leaf_spans.extend(child._find_leaf_spans())
         return leaf_spans    
-    
     
     def find_spans_by_fields(self, field_values):
         matches = []
@@ -116,52 +89,106 @@ def print_span_tree(span: Span, indent=0, fields_to_print=None):
         for child in span.children:
             print_span_tree(child, indent + 1, fields_to_print)
 
-def parse_traces(traces) -> list[Span]:
-    span_dict = {}
-    root_spans = []
+class TraceSet:
+    def __init__(self, trace_file_path):
+        self.trace_file_path = trace_file_path
+        self.json_traces = self.load_traces()
+        self.root_spans = self.parse_traces()
 
-    for batches in traces:
-        # Iterate through each batch of spans
-        for scope in batches['batches']:
-            # Identify resource for scope
-            resource = scope['resource']['attributes'][0]['value']['stringValue']
-            for span in scope["scopeSpans"][0]["spans"]:
-                trace_id = span["traceId"]
-                span_id = span["spanId"]
-                parent_span_id = span.get("parentSpanId", None)
-                service = resource
-                operation_name = span["name"]
-                kind = span["kind"]
-                start_time = span["startTimeUnixNano"]
-                end_time = span["endTimeUnixNano"]
-                
-                new_span = Span(trace_id, span_id, parent_span_id, service, operation_name, kind, start_time, end_time)
-                
-                # Get Child Spans previously found
-                if span_id in span_dict:
-                    new_span.children = span_dict[span_id].children                
-                span_dict[span_id] = new_span
-                
-                # If parent_span_id is not None, add the new span as a child of an empty parent span
-                if parent_span_id:
-                    if parent_span_id in span_dict:
-                        span_dict[parent_span_id].add_child(new_span)
-                    else: # Handle finding child span before parent span
-                        span_dict[parent_span_id] = Span(trace_id, parent_span_id, None, None, None, None, None, None)
-                        span_dict[parent_span_id].add_child(new_span)
-                        print(f"Found child span before parent span: {span_dict[parent_span_id]}")
-                else:
-                    # Add Root Span    
-                    root_spans.append(new_span)
-                    
+    def load_traces(self):
+        with open(self.trace_file_path, 'r') as f:
+            json_traces = json.load(f)
+        return json_traces   
     
-    return root_spans
+    def parse_traces(traces) -> list[Span]:
+        span_dict = {}
+        root_spans = []
+
+        for batches in traces:
+            # Iterate through each batch of spans
+            for scope in batches['batches']:
+                # Identify resource for scope
+                resource = scope['resource']['attributes'][0]['value']['stringValue']
+                for span in scope["scopeSpans"][0]["spans"]:
+                    trace_id = span["traceId"]
+                    span_id = span["spanId"]
+                    parent_span_id = span.get("parentSpanId", None)
+                    service = resource
+                    operation_name = span["name"]
+                    kind = span["kind"]
+                    start_time = span["startTimeUnixNano"]
+                    end_time = span["endTimeUnixNano"]
+                    
+                    new_span = Span(trace_id, span_id, parent_span_id, service, operation_name, kind, start_time, end_time)
+                    
+                    # Get Child Spans previously found
+                    if span_id in span_dict:
+                        new_span.children = span_dict[span_id].children                
+                    span_dict[span_id] = new_span
+                    
+                    # If parent_span_id is not None, add the new span as a child of an empty parent span
+                    if parent_span_id:
+                        if parent_span_id in span_dict:
+                            span_dict[parent_span_id].add_child(new_span)
+                        else: # Handle finding child span before parent span
+                            span_dict[parent_span_id] = Span(trace_id, parent_span_id, None, None, None, None, None, None)
+                            span_dict[parent_span_id].add_child(new_span)
+                            print(f"Found child span before parent span: {span_dict[parent_span_id]}")
+                    else:
+                        # Add Root Span    
+                        root_spans.append(new_span)
+        return root_spans
+
+    def get_root_spans(self):
+        return self.root_spans
+    
+    def get_list_of_span_durations(self, spans: list[Span]) -> dict[Span, float]:
+        durations = {}
+        for span in spans:
+            durations[span] = span.get_span_duration(span)
+        return durations
+
+    def _calculate_durations(self, durations):
+        total_duration = self.get_span_duration()
+        for child in self.children:
+            child_duration = child._calculate_durations(durations)
+            total_duration -= child_duration
+        durations[self.span_id] = total_duration
+        return self.get_span_duration()
+    
+    def get_proporational_durations(self, root: Span, spans: list[Span]) -> dict[Span, float]:
+        proportional_durations = {}
+        span_contains = {}    
+        span_durations = self.get_list_of_span_durations(spans)            
+        
+        #TODO: Subtract from ancestor spans that contain another included span the duration of the included span
+        
+        
+        for span_duration in span_durations.items():
+            proportional_durations[span_duration[0]] = span_duration[1] / root.get_span_duration(root)
+      
+        return proportional_durations
+    
+    def get_list_of_gaps_with_parent(self, spans: list[Span]) -> dict[Span, tuple[int, int]]:
+        parent_gaps = {}
+        for span in spans:
+            parent_gaps[span] =  span.get_gap_durations_of_parent(span)
+        return parent_gaps
+    
+    def get_proportional_durations_of_gaps(self, root: Span, spans: list[Span]) -> dict[Span, tuple[float, float]]:
+        proportional_durations = {}    
+        list_of_gaps = self.get_list_of_gaps_with_parent(spans)
+        
+        for span_gaps in list_of_gaps.items():
+            proportional_durations[span_gaps[0]] = span_gaps[1][0] / root.get_span_duration(root), span_gaps[1][1] / root.get_span_duration(root)
+      
+        return proportional_durations
 
 # Example usage
 if __name__ == "__main__":
     with open('/home/estebanramos/projects/DeathStarBench/hotelReservation/scripts/analysis/traces.json', 'r') as f:
         traces = json.load(f)
-    root_spans = parse_traces(traces)
+    root_spans = TraceSet.parse_traces(traces)
     
     for root_span in root_spans:
         print_span_tree(root_span, fields_to_print=["trace_id", "span_id", "operation_name", "kind","service"])
@@ -183,6 +210,6 @@ if __name__ == "__main__":
             print("Matching Span:")
             print_span_tree(matching_span, fields_to_print=["span_id", "operation_name", "kind","service"])
             print("")
-            print("Matching Span proportional duration:")
-            duration = root_span.get_span_proportional_duration_of_root(span_id)
-            print(duration)
+            # print("Matching Span proportional duration:")
+            # duration = root_span.get_span_proportional_duration_of_root(span_id)
+            # print(duration)
