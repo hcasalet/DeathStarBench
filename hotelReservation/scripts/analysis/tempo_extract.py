@@ -49,11 +49,12 @@ def main():
 
     
     query = {
-        # "start": "2023-01-01T00:00:00Z",
+        # 2024-10-22 10:31:40
+        # "startTime": "2024-10-22T10:31:40Z",
         # "end": "2023-12-31T23:59:59Z",
-        "minDuration": "100ms",
-        # "maxDuration": "100ms",
-        "limit": 10,
+        "minDuration": "2s",
+        "maxDuration": "3s",
+        "limit": 20,
         "kind": "server",
         "tags" : {
             "service.name": "frontend"

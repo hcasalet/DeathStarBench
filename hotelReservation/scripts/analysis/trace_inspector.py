@@ -50,7 +50,7 @@ class Span:
         return None
     
     def get_gap_durations_of_parent(self, span):
-        return span.get_start_gap_duration_of_parent(span), span.get_end_gap_duration_of_parent(span)
+        return self.get_start_gap_duration_of_parent(span), self.get_end_gap_duration_of_parent(span)
     
         
     def rank_longest_leaf_spans(self):
@@ -93,14 +93,14 @@ class TraceSet:
     def __init__(self, trace_file_path):
         self.trace_file_path = trace_file_path
         self.json_traces = self.load_traces()
-        self.root_spans = self.parse_traces()
+        self.root_spans = self.parse_traces(self.json_traces)
 
     def load_traces(self):
         with open(self.trace_file_path, 'r') as f:
             json_traces = json.load(f)
         return json_traces   
     
-    def parse_traces(traces) -> list[Span]:
+    def parse_traces(self, traces) -> list[Span]:
         span_dict = {}
         root_spans = []
 
@@ -142,74 +142,126 @@ class TraceSet:
     def get_root_spans(self):
         return self.root_spans
     
-    def get_list_of_span_durations(self, spans: list[Span]) -> dict[Span, float]:
+    def get_dict_of_span_durations(self, spans: list[Span]) -> dict[Span, float]:
         durations = {}
         for span in spans:
             durations[span] = span.get_span_duration(span)
         return durations
 
-    def _calculate_durations(self, durations):
-        total_duration = self.get_span_duration()
-        for child in self.children:
-            child_duration = child._calculate_durations(durations)
-            total_duration -= child_duration
-        durations[self.span_id] = total_duration
-        return self.get_span_duration()
+    def _calculate_durations(self, span: Span):
+        total_duration = span.get_span_duration(span)
+        child_intervals = []
+        duration_to_subtract = 0
+        # prevent overlap of parallel children durations
+        for child in span.children:
+            child_intervals.append((int(child.start_time), int(child.end_time)))
+        
+        if len(child_intervals) == 0:
+            return total_duration
+        
+        # sort by start time
+        child_intervals.sort(key=lambda x: x[0])
+        
+        merged_intervals = []
+        current_start, current_end = child_intervals[0]
+        for start, end in child_intervals[1:]:
+            if start <= current_end:
+                current_end = max(current_end, end)
+            else:
+                merged_intervals.append((current_start, current_end))
+                current_start, current_end = start, end
+        merged_intervals.append((current_start, current_end))
+        
+        duration_to_subtract = sum([end - start for start, end in merged_intervals])
+        return total_duration - duration_to_subtract
     
     def get_proporational_durations(self, root: Span, spans: list[Span]) -> dict[Span, float]:
         proportional_durations = {}
-        span_contains = {}    
-        span_durations = self.get_list_of_span_durations(spans)            
+        span_durations = self.get_dict_of_span_durations(spans)            
         
         #TODO: Subtract from ancestor spans that contain another included span the duration of the included span
-        
+        # TODO: Ensure it's working right
+        for span_duration in span_durations.items():
+            adjusted_duration = self._calculate_durations(span_duration[0])
+            span_durations[span_duration[0]] = adjusted_duration
         
         for span_duration in span_durations.items():
             proportional_durations[span_duration[0]] = span_duration[1] / root.get_span_duration(root)
       
         return proportional_durations
     
-    def get_list_of_gaps_with_parent(self, spans: list[Span]) -> dict[Span, tuple[int, int]]:
+    def get_list_of_gaps_with_parent(self, root: Span, spans: list[Span]) -> dict[Span, tuple[int, int]]:
         parent_gaps = {}
         for span in spans:
-            parent_gaps[span] =  span.get_gap_durations_of_parent(span)
+            parent_gaps[span] =  root.get_gap_durations_of_parent(span)
         return parent_gaps
     
     def get_proportional_durations_of_gaps(self, root: Span, spans: list[Span]) -> dict[Span, tuple[float, float]]:
         proportional_durations = {}    
-        list_of_gaps = self.get_list_of_gaps_with_parent(spans)
+        list_of_gaps = self.get_list_of_gaps_with_parent(root, spans)
         
         for span_gaps in list_of_gaps.items():
             proportional_durations[span_gaps[0]] = span_gaps[1][0] / root.get_span_duration(root), span_gaps[1][1] / root.get_span_duration(root)
       
         return proportional_durations
+    
+    def aggregate_span_durations(self, durations: dict[Span, float]) -> float:
+        sum = 0
+        for duration in durations.items():
+            sum += durations[duration[0]]
+        return sum
+    
+    def aggregate_proportional_span_durations(self, proportional_durations: dict[Span, tuple[float,float]]) -> float:
+        return sum([durations[0] + durations[1] for durations in proportional_durations.values()])
+        
+    def print_span_durations(self, durations: dict[Span, float]):
+        for span, duration in durations.items():
+            print(f"{span}: {duration}")
+    
+    def print_proportional_span_durations(self, proportional_durations: dict[Span, float]):
+        for span, duration in proportional_durations.items():
+            print(f"{span}: {duration}")
+            
+    def print_proportional_duration_of_gaps_with_parent(self, proportional_gaps: dict[Span, tuple[float, float]]):
+        for span, gaps in proportional_gaps.items():
+            print(f"{span}: {gaps}")
 
 # Example usage
 if __name__ == "__main__":
     with open('/home/estebanramos/projects/DeathStarBench/hotelReservation/scripts/analysis/traces.json', 'r') as f:
         traces = json.load(f)
-    root_spans = TraceSet.parse_traces(traces)
+    
+    tset = TraceSet('/home/estebanramos/projects/DeathStarBench/hotelReservation/scripts/analysis/traces.json')
+    root_spans = tset.get_root_spans()
     
     for root_span in root_spans:
         print_span_tree(root_span, fields_to_print=["trace_id", "span_id", "operation_name", "kind","service"])
 
-        field_values = {"operation_name": "search.Search/Nearby"}
+        # Search for server spans
+        field_values = {"kind": "SPAN_KIND_SERVER"}
         matching_span_ids = root_span.find_spans_by_fields(field_values)
+        
+        # Remove root span from matching span ids
+        matching_span_ids.remove(root_span.span_id)
         print("Matching Span IDs:", matching_span_ids)
         
-        
-        leaf_spans = root_span.rank_longest_leaf_spans()
-        for leaf_span in leaf_spans:
-            print("Leaf Span:")
-            print_span_tree(leaf_span, fields_to_print=["span_id", "operation_name", "kind","service"])
-            print( leaf_span.get_span_duration(leaf_span))
-            print("")
-        
         for span_id in matching_span_ids:
+            print("Root Span Duration:")
+            print(root_span.get_span_duration(root_span))
             matching_span = root_span.get_span(span_id)
             print("Matching Span:")
             print_span_tree(matching_span, fields_to_print=["span_id", "operation_name", "kind","service"])
             print("")
-            # print("Matching Span proportional duration:")
-            # duration = root_span.get_span_proportional_duration_of_root(span_id)
-            # print(duration)
+            
+        
+        tset.print_span_durations(tset.get_dict_of_span_durations([root_span.get_span(span_id) for span_id in matching_span_ids]))
+        tset.print_proportional_span_durations(tset.get_proporational_durations(root_span, [root_span.get_span(span_id) for span_id in matching_span_ids]))
+        tset.print_proportional_duration_of_gaps_with_parent(tset.get_proportional_durations_of_gaps(root_span, [root_span.get_span(span_id) for span_id in matching_span_ids]))
+        
+        print("Aggregate Server Span Durations:")
+        print(tset.aggregate_span_durations( tset.get_proporational_durations(root_span, [root_span.get_span(span_id) for span_id in matching_span_ids])))
+        print("Aggregate Server-Client Gap Span Durations:")
+        print(tset.aggregate_proportional_span_durations(tset.get_proportional_durations_of_gaps(root_span, [root_span.get_span(span_id) for span_id in matching_span_ids])))
+        
+
+
