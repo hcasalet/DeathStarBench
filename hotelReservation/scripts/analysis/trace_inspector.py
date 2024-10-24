@@ -228,15 +228,16 @@ class TraceSet:
 
 # Example usage
 if __name__ == "__main__":
-    with open('/home/estebanramos/projects/DeathStarBench/hotelReservation/scripts/analysis/traces.json', 'r') as f:
-        traces = json.load(f)
+    # with open('/home/estebanramos/projects/DeathStarBench/hotelReservation/scripts/analysis/traces.json', 'r') as f:
+        # traces = json.load(f)
     
     tset = TraceSet('/home/estebanramos/projects/DeathStarBench/hotelReservation/scripts/analysis/traces.json')
     root_spans = tset.get_root_spans()
     
     for root_span in root_spans:
-        print_span_tree(root_span, fields_to_print=["trace_id", "span_id", "operation_name", "kind","service"])
-
+        # print_span_tree(root_span, fields_to_print=["trace_id", "span_id", "operation_name", "kind","service"])
+        print("Root Span Duration:")
+        print(root_span.get_span_duration(root_span))
         # Search for server spans
         field_values = {"kind": "SPAN_KIND_SERVER"}
         matching_span_ids = root_span.find_spans_by_fields(field_values)
@@ -245,18 +246,16 @@ if __name__ == "__main__":
         matching_span_ids.remove(root_span.span_id)
         print("Matching Span IDs:", matching_span_ids)
         
-        for span_id in matching_span_ids:
-            print("Root Span Duration:")
-            print(root_span.get_span_duration(root_span))
-            matching_span = root_span.get_span(span_id)
-            print("Matching Span:")
-            print_span_tree(matching_span, fields_to_print=["span_id", "operation_name", "kind","service"])
-            print("")
+        # for span_id in matching_span_ids:
+        #     matching_span = root_span.get_span(span_id)
+        #     print("Matching Span:")
+        #     print_span_tree(matching_span, fields_to_print=["span_id", "operation_name", "kind","service"])
+        #     print("")
             
         
-        tset.print_span_durations(tset.get_dict_of_span_durations([root_span.get_span(span_id) for span_id in matching_span_ids]))
-        tset.print_proportional_span_durations(tset.get_proporational_durations(root_span, [root_span.get_span(span_id) for span_id in matching_span_ids]))
-        tset.print_proportional_duration_of_gaps_with_parent(tset.get_proportional_durations_of_gaps(root_span, [root_span.get_span(span_id) for span_id in matching_span_ids]))
+        # tset.print_span_durations(tset.get_dict_of_span_durations([root_span.get_span(span_id) for span_id in matching_span_ids]))
+        # tset.print_proportional_span_durations(tset.get_proporational_durations(root_span, [root_span.get_span(span_id) for span_id in matching_span_ids]))
+        # tset.print_proportional_duration_of_gaps_with_parent(tset.get_proportional_durations_of_gaps(root_span, [root_span.get_span(span_id) for span_id in matching_span_ids]))
         
         print("Aggregate Server Span Durations:")
         print(tset.aggregate_span_durations( tset.get_proporational_durations(root_span, [root_span.get_span(span_id) for span_id in matching_span_ids])))

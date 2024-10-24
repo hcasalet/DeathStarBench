@@ -52,8 +52,8 @@ def main():
         # 2024-10-22 10:31:40
         # "startTime": "2024-10-22T10:31:40Z",
         # "end": "2023-12-31T23:59:59Z",
-        "minDuration": "2s",
-        "maxDuration": "3s",
+        "minDuration": "100ms",
+        "maxDuration": "200ms",
         "limit": 20,
         "kind": "server",
         "tags" : {
