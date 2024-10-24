@@ -5,8 +5,8 @@ class TempoClient:
     def __init__(self, base_url):
         self.base_url = base_url
         
-    def get_tags(self):
-        url = f"{self.base_url}/api/tags"
+    def get_tags(self) -> list:
+        url = f"{self.base_url}/api/search/tags"
         response = requests.get(url)
         response.raise_for_status()
         resp = response.json()
@@ -36,6 +36,8 @@ class TempoClient:
 def collect_traces_with_query(client, query):
     traces = []
     search_results = client.query_traces(query)
+   
+    print(f"Num Traces: {len(search_results.get('traces', []))}") 
     for trace in search_results.get('traces', []):
         trace_id = trace.get('traceID')
         if trace_id:
@@ -47,6 +49,7 @@ def main():
     base_url = "http://localhost:3200"
     client = TempoClient(base_url)
 
+    print(f" Tags: { client.get_tags()}")
     
     query = {
         # 2024-10-22 10:31:40
@@ -61,10 +64,10 @@ def main():
         }
     }
 
-    traces = collect_traces_with_query(client, query)
+    # traces = collect_traces_with_query(client, query)
 
-    with open('traces.json', 'w') as f:
-        json.dump(traces, f, indent=4)
+    # with open('traces.json', 'w') as f:
+        # json.dump(traces, f, indent=4)
 
 if __name__ == "__main__":
     main()

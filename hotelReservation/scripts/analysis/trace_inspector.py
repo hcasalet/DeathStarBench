@@ -26,6 +26,11 @@ class Span:
                 return found_span
         return None
     
+    def get_all_spans(self):
+        spans = [self]
+        for child in self.children:
+            spans.extend(child.get_all_spans())
+        return spans
     
     def get_span_duration(self, span):
         return int(span.end_time) - int(span.start_time)
@@ -133,7 +138,7 @@ class TraceSet:
                         else: # Handle finding child span before parent span
                             span_dict[parent_span_id] = Span(trace_id, parent_span_id, None, None, None, None, None, None)
                             span_dict[parent_span_id].add_child(new_span)
-                            print(f"Found child span before parent span: {span_dict[parent_span_id]}")
+                            # print(f"Found child span before parent span: {span_dict[parent_span_id]}")
                     else:
                         # Add Root Span    
                         root_spans.append(new_span)
@@ -238,29 +243,45 @@ if __name__ == "__main__":
         # print_span_tree(root_span, fields_to_print=["trace_id", "span_id", "operation_name", "kind","service"])
         print("Root Span Duration:")
         print(root_span.get_span_duration(root_span))
+        # print("All Spans:")
+        
+        field_values = {"kind": "SPAN_KIND_CLIENT"}
+        client_span_ids = root_span.find_spans_by_fields(field_values)
+        # Remove root span from matching span ids
+        print("Client Span IDs:", client_span_ids)
+        
+        field_values = {"kind": "SPAN_KIND_INTERNAL"}
+        interanl_span_ids = root_span.find_spans_by_fields(field_values)
+        # Remove root span from matching span ids
+        print("Internal Span IDs:", interanl_span_ids)
+
+        
         # Search for server spans
         field_values = {"kind": "SPAN_KIND_SERVER"}
-        matching_span_ids = root_span.find_spans_by_fields(field_values)
+        server_span_ids = root_span.find_spans_by_fields(field_values)
         
         # Remove root span from matching span ids
-        matching_span_ids.remove(root_span.span_id)
-        print("Matching Span IDs:", matching_span_ids)
+        server_span_ids.remove(root_span.span_id)
+        print("Server Span IDs:", server_span_ids)
         
-        # for span_id in matching_span_ids:
-        #     matching_span = root_span.get_span(span_id)
-        #     print("Matching Span:")
-        #     print_span_tree(matching_span, fields_to_print=["span_id", "operation_name", "kind","service"])
+        # for span_id in server_span_ids:
+        #     server_span = root_span.get_span(span_id)
+        #     print("Server Span:")
+        #     print_span_tree(server_span, fields_to_print=["span_id", "operation_name", "kind","service"])
         #     print("")
             
         
-        # tset.print_span_durations(tset.get_dict_of_span_durations([root_span.get_span(span_id) for span_id in matching_span_ids]))
+        # tset.print_span_durations(tset.get_dict_of_span_durations([root_span.get_span(span_id) for span_id in server_span_ids]))
         # tset.print_proportional_span_durations(tset.get_proporational_durations(root_span, [root_span.get_span(span_id) for span_id in matching_span_ids]))
         # tset.print_proportional_duration_of_gaps_with_parent(tset.get_proportional_durations_of_gaps(root_span, [root_span.get_span(span_id) for span_id in matching_span_ids]))
-        
-        print("Aggregate Server Span Durations:")
-        print(tset.aggregate_span_durations( tset.get_proporational_durations(root_span, [root_span.get_span(span_id) for span_id in matching_span_ids])))
         print("Aggregate Server-Client Gap Span Durations:")
-        print(tset.aggregate_proportional_span_durations(tset.get_proportional_durations_of_gaps(root_span, [root_span.get_span(span_id) for span_id in matching_span_ids])))
-        
+        print(tset.aggregate_proportional_span_durations(tset.get_proportional_durations_of_gaps(root_span, [root_span.get_span(span_id) for span_id in server_span_ids])))
+        print("Aggregate Server Span Durations:")
+        print(tset.aggregate_span_durations( tset.get_proporational_durations(root_span, [root_span.get_span(span_id) for span_id in server_span_ids])))
+        print("Aggregate Internal Span Durations:")
+        print(tset.aggregate_span_durations( tset.get_proporational_durations(root_span, [root_span.get_span(span_id) for span_id in interanl_span_ids])))
+        print("Aggregate Client Span Durations:")
+        print(tset.aggregate_span_durations( tset.get_proporational_durations(root_span, [root_span.get_span(span_id) for span_id in client_span_ids])))
+
 
 
