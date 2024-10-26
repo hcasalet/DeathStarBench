@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/EIRNf/notnets_grpc"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/registry"
 	pb "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/attractions/proto"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/tls"
@@ -45,7 +46,7 @@ type Server struct {
 }
 
 // Run starts the server
-func (s *Server) Run() error {
+func (s *Server) Run(_overshm bool) error {
 	if s.Port == 0 {
 		return fmt.Errorf("server port must be set")
 	}
@@ -79,30 +80,38 @@ func (s *Server) Run() error {
 			PermitWithoutStream: true,
 		}),
 		grpc.UnaryInterceptor(unaryInterceptor),
-
 	}
 
 	if tlsopt := tls.GetServerOpt(); tlsopt != nil {
 		opts = append(opts, tlsopt)
 	}
 
-	srv := grpc.NewServer(opts...)
+	if _overshm {
+		srv := notnets_grpc.NewNotnetsServer()
+		pb.RegisterAttractionsServer(srv, s)
 
-	pb.RegisterAttractionsServer(srv, s)
+		// listener
+		lis := notnets_grpc.Listen("attraction")
 
-	// listener
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
-	if err != nil {
-		return fmt.Errorf("failed to listen: %v", err)
+		return srv.Serve(lis)
+	} else {
+		srv := grpc.NewServer(opts...)
+		pb.RegisterAttractionsServer(srv, s)
+
+		// listener
+		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
+		if err != nil {
+			return fmt.Errorf("failed to listen: %v", err)
+		}
+
+		err = s.Registry.Register(name, s.uuid, s.IpAddr, s.Port)
+		if err != nil {
+			return fmt.Errorf("failed register: %v", err)
+		}
+		log.Info().Msg("Successfully registered in consul")
+
+		return srv.Serve(lis)
 	}
-
-	err = s.Registry.Register(name, s.uuid, s.IpAddr, s.Port)
-	if err != nil {
-		return fmt.Errorf("failed register: %v", err)
-	}
-	log.Info().Msg("Successfully registered in consul")
-
-	return srv.Serve(lis)
 }
 
 // Shutdown cleans up any processes
@@ -115,7 +124,7 @@ func (s *Server) NearbyRest(ctx context.Context, req *pb.Request) (*pb.Result, e
 	log.Trace().Msgf("In Attractions NearbyRest")
 
 	tracer := otel.GetTracerProvider().Tracer(uuid.NewString())
-	_, mongoSpan := tracer.Start(ctx,"mongo_restaurant")
+	_, mongoSpan := tracer.Start(ctx, "mongo_restaurant")
 	mongoSpan.SetAttributes(attribute.String("span.kind", "client"))
 
 	c := s.MongoClient.Database("attractions-db").Collection("hotels")
@@ -154,7 +163,7 @@ func (s *Server) NearbyMus(ctx context.Context, req *pb.Request) (*pb.Result, er
 	log.Trace().Msgf("In Attractions NearbyMus")
 
 	tracer := otel.GetTracerProvider().Tracer(uuid.NewString())
-	_, mongoSpan := tracer.Start(ctx,"mongo_museum")
+	_, mongoSpan := tracer.Start(ctx, "mongo_museum")
 	mongoSpan.SetAttributes(attribute.String("span.kind", "client"))
 
 	c := s.MongoClient.Database("attractions-db").Collection("hotels")
@@ -194,7 +203,7 @@ func (s *Server) NearbyCinema(ctx context.Context, req *pb.Request) (*pb.Result,
 
 	tracer := otel.GetTracerProvider().Tracer(uuid.NewString())
 
-	_, mongoSpan := tracer.Start(ctx,"mongo_cinema")
+	_, mongoSpan := tracer.Start(ctx, "mongo_cinema")
 	mongoSpan.SetAttributes(attribute.String("span.kind", "client"))
 
 	c := s.MongoClient.Database("attractions-db").Collection("hotels")

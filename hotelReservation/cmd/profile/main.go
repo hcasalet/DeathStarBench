@@ -45,12 +45,14 @@ func main() {
 	servPort, _ := strconv.Atoi(result["ProfilePort"])
 	servIP := result["ProfileIP"]
 
+	_overSharedMem := result["overSharedMem"] == "true"
+
 	var (
 		consulAddr = flag.String("consuladdr", result["consulAddress"], "Consul address")
 	)
 	flag.Parse()
 
-	 err = tracing.Init("profile")
+	err = tracing.Init("profile")
 	if err != nil {
 		log.Panic().Msgf("Got error while initializing open telemetry agent: %v", err)
 	}
@@ -72,5 +74,5 @@ func main() {
 	}
 
 	log.Info().Msg("Starting server...")
-	log.Fatal().Msg(srv.Run().Error())
+	log.Fatal().Msg(srv.Run(_overSharedMem).Error())
 }

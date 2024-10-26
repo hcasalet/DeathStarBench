@@ -38,6 +38,8 @@ func main() {
 	servIP := result["SearchIP"]
 	knativeDNS := result["KnativeDomainName"]
 
+	_overSharedMem := result["overSharedMem"] == "true"
+
 	var (
 		consulAddr = flag.String("consulAddr", result["consulAddress"], "Consul address")
 	)
@@ -65,5 +67,5 @@ func main() {
 	}
 
 	log.Info().Msg("Starting server...")
-	log.Fatal().Msg(srv.Run().Error())
+	log.Fatal().Msg(srv.Run(_overSharedMem).Error())
 }

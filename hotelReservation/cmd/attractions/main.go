@@ -55,6 +55,8 @@ func main() {
 	log.Info().Msgf("Read target port: %v", serv_port)
 	log.Info().Msgf("Read consul address: %v", result["consulAddress"])
 
+	_overSharedMem := result["overSharedMem"] == "true"
+
 	var (
 		// port       = flag.Int("port", 8081, "The server port")
 		consuladdr = flag.String("consuladdr", result["consulAddress"], "Consul address")
@@ -66,7 +68,6 @@ func main() {
 		log.Panic().Msgf("Got error while initializing open telemetry agent: %v", err)
 	}
 	log.Info().Msg("Tracing agent initialized")
-
 
 	log.Info().Msgf("Initializing consul agent [host: %v]...", *consuladdr)
 	registry, err := registry.NewClient(*consuladdr)
@@ -84,5 +85,5 @@ func main() {
 	}
 
 	log.Info().Msg("Starting server...")
-	log.Fatal().Msg(srv.Run().Error())
+	log.Fatal().Msg(srv.Run(_overSharedMem).Error())
 }

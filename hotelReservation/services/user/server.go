@@ -36,7 +36,7 @@ type Server struct {
 }
 
 // Run starts the server
-func (s *Server) Run() error {
+func (s *Server) Run(_overShm bool) error {
 	if s.Port == 0 {
 		return fmt.Errorf("server port must be set")
 	}

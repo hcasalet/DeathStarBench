@@ -56,6 +56,8 @@ func main() {
 	log.Info().Msgf("Read consul address: %v", result["consulAddress"])
 	log.Info().Msgf("Read jaeger address: %v", result["jaegerAddress"])
 
+	_overSharedMem := result["overSharedMem"] == "true"
+
 	var (
 		// port       = flag.Int("port", 8081, "The server port")
 		consuladdr = flag.String("consuladdr", result["consulAddress"], "Consul address")
@@ -85,5 +87,5 @@ func main() {
 	}
 
 	log.Info().Msg("Starting server...")
-	log.Fatal().Msg(srv.Run().Error())
+	log.Fatal().Msg(srv.Run(_overSharedMem).Error())
 }

@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/EIRNf/notnets_grpc"
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/registry"
 	pb "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/profile/proto"
@@ -40,7 +41,7 @@ type Server struct {
 }
 
 // Run starts the server
-func (s *Server) Run() error {
+func (s *Server) Run(_overShm bool) error {
 
 	if s.Port == 0 {
 		return fmt.Errorf("server port must be set")
@@ -49,7 +50,6 @@ func (s *Server) Run() error {
 	s.uuid = uuid.New().String()
 
 	log.Trace().Msgf("in run s.IpAddr = %s, port = %d", s.IpAddr, s.Port)
-
 
 	tp := otel.GetTracerProvider()
 	unaryInterceptor := otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp))
@@ -62,29 +62,38 @@ func (s *Server) Run() error {
 			PermitWithoutStream: true,
 		}),
 		grpc.UnaryInterceptor(unaryInterceptor),
-
 	}
 
 	if tlsopt := tls.GetServerOpt(); tlsopt != nil {
 		opts = append(opts, tlsopt)
 	}
 
-	srv := grpc.NewServer(opts...)
+	if _overShm {
+		srv := notnets_grpc.NewNotnetsServer()
+		pb.RegisterProfileServer(srv, s)
 
-	pb.RegisterProfileServer(srv, s)
+		// listener
+		lis := notnets_grpc.Listen("geo")
 
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
-	if err != nil {
-		log.Fatal().Msgf("failed to configure listener: %v", err)
+		return srv.Serve(lis)
+	} else {
+		srv := grpc.NewServer(opts...)
+
+		pb.RegisterProfileServer(srv, s)
+
+		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
+		if err != nil {
+			log.Fatal().Msgf("failed to configure listener: %v", err)
+		}
+
+		err = s.Registry.Register(name, s.uuid, s.IpAddr, s.Port)
+		if err != nil {
+			return fmt.Errorf("failed register: %v", err)
+		}
+		log.Info().Msg("Successfully registered in consul")
+
+		return srv.Serve(lis)
 	}
-
-	err = s.Registry.Register(name, s.uuid, s.IpAddr, s.Port)
-	if err != nil {
-		return fmt.Errorf("failed register: %v", err)
-	}
-	log.Info().Msg("Successfully registered in consul")
-
-	return srv.Serve(lis)
 }
 
 // Shutdown cleans up any processes
@@ -108,8 +117,8 @@ func (s *Server) GetProfiles(ctx context.Context, req *pb.Request) (*pb.Result, 
 	}
 
 	tracer := otel.GetTracerProvider().Tracer(uuid.NewString())
-	
-	_, memSpan := tracer.Start(ctx,"memcached_get_profile")
+
+	_, memSpan := tracer.Start(ctx, "memcached_get_profile")
 	memSpan.SetAttributes(attribute.String("span.kind", "client"))
 
 	resMap, err := s.MemcClient.GetMulti(hotelIds)
@@ -138,9 +147,8 @@ func (s *Server) GetProfiles(ctx context.Context, req *pb.Request) (*pb.Result, 
 
 				collection := s.MongoClient.Database("profile-db").Collection("hotels")
 
-				_, mongoSpan := tracer.Start(ctx,"mongo_profile")
+				_, mongoSpan := tracer.Start(ctx, "mongo_profile")
 				mongoSpan.SetAttributes(attribute.String("span.kind", "client"))
-
 
 				err := collection.FindOne(context.TODO(), bson.D{{"id", hotelId}}).Decode(&hotelProf)
 				mongoSpan.End()

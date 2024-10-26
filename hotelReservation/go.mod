@@ -5,6 +5,7 @@ go 1.22
 toolchain go1.23.2
 
 require (
+	github.com/EIRNf/notnets_grpc v0.0.0-20241025031340-9b21afb7cec6
 	github.com/bradfitz/gomemcache v0.0.0-20230905024940-24af94b03874
 	github.com/google/uuid v1.6.0
 	github.com/grafana/otel-profiling-go v0.5.1
@@ -42,7 +43,9 @@ require (
 
 require (
 	github.com/armon/go-metrics v0.4.1 // indirect
+	github.com/bufbuild/protocompile v0.14.1 // indirect
 	github.com/fatih/color v1.15.0 // indirect
+	github.com/fullstorydev/grpchan v1.1.1 // indirect
 	github.com/go-playground/form v3.1.4+incompatible // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -72,6 +75,7 @@ require (
 	golang.org/x/text v0.19.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241007155032-5fefd90f89a9 // indirect
+	modernc.org/libc v1.40.6 // indirect
 )
 
 replace github.com/hashicorp/consul => github.com/hashicorp/consul v1.15.7

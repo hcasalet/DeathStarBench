@@ -1,9 +1,15 @@
+# github.com/EIRNf/notnets_grpc v0.0.0-20241025031340-9b21afb7cec6
+## explicit; go 1.20
+github.com/EIRNf/notnets_grpc
+github.com/EIRNf/notnets_grpc/internal
 # github.com/armon/go-metrics v0.4.1
 ## explicit; go 1.12
 github.com/armon/go-metrics
 # github.com/bradfitz/gomemcache v0.0.0-20230905024940-24af94b03874
 ## explicit; go 1.18
 github.com/bradfitz/gomemcache/memcache
+# github.com/bufbuild/protocompile v0.14.1
+## explicit; go 1.21
 # github.com/cenkalti/backoff/v4 v4.3.0
 ## explicit; go 1.18
 github.com/cenkalti/backoff/v4
@@ -13,6 +19,9 @@ github.com/fatih/color
 # github.com/felixge/httpsnoop v1.0.4
 ## explicit; go 1.13
 github.com/felixge/httpsnoop
+# github.com/fullstorydev/grpchan v1.1.1
+## explicit; go 1.13
+github.com/fullstorydev/grpchan
 # github.com/go-logr/logr v1.4.2
 ## explicit; go 1.18
 github.com/go-logr/logr
@@ -382,4 +391,7 @@ google.golang.org/protobuf/types/known/fieldmaskpb
 google.golang.org/protobuf/types/known/structpb
 google.golang.org/protobuf/types/known/timestamppb
 google.golang.org/protobuf/types/known/wrapperspb
+# modernc.org/libc v1.40.6
+## explicit; go 1.20
+modernc.org/libc/pthread
 # github.com/hashicorp/consul => github.com/hashicorp/consul v1.15.7

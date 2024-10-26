@@ -16,6 +16,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
+	"github.com/EIRNf/notnets_grpc"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/registry"
 	pb "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/review/proto"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/tls"
@@ -48,7 +49,7 @@ type Server struct {
 }
 
 // Run starts the server
-func (s *Server) Run() error {
+func (s *Server) Run(_overShm bool) error {
 
 	if s.Port == 0 {
 		return fmt.Errorf("server port must be set")
@@ -58,7 +59,6 @@ func (s *Server) Run() error {
 
 	tp := otel.GetTracerProvider()
 	unaryInterceptor := otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp))
-
 
 	opts := []grpc.ServerOption{
 		grpc.KeepaliveParams(keepalive.ServerParameters{
@@ -71,29 +71,38 @@ func (s *Server) Run() error {
 		// 	otgrpc.OpenTracingServerInterceptor(s.Tracer),
 		// ),
 		grpc.UnaryInterceptor(unaryInterceptor),
-
 	}
 
 	if tlsopt := tls.GetServerOpt(); tlsopt != nil {
 		opts = append(opts, tlsopt)
 	}
 
-	srv := grpc.NewServer(opts...)
+	if _overShm {
+		srv := notnets_grpc.NewNotnetsServer()
+		pb.RegisterReviewServer(srv, s)
 
-	pb.RegisterReviewServer(srv, s)
+		// listener
+		lis := notnets_grpc.Listen("geo")
 
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
-	if err != nil {
-		log.Fatal().Msgf("failed to listen: %v", err)
+		return srv.Serve(lis)
+	} else {
+		srv := grpc.NewServer(opts...)
+
+		pb.RegisterReviewServer(srv, s)
+
+		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
+		if err != nil {
+			log.Fatal().Msgf("failed to listen: %v", err)
+		}
+
+		err = s.Registry.Register(name, s.uuid, s.IpAddr, s.Port)
+		if err != nil {
+			return fmt.Errorf("failed register: %v", err)
+		}
+		log.Info().Msg("Successfully registered in consul")
+
+		return srv.Serve(lis)
 	}
-
-	err = s.Registry.Register(name, s.uuid, s.IpAddr, s.Port)
-	if err != nil {
-		return fmt.Errorf("failed register: %v", err)
-	}
-	log.Info().Msg("Successfully registered in consul")
-
-	return srv.Serve(lis)
 }
 
 // Shutdown cleans up any processes

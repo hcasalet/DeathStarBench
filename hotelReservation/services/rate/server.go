@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/EIRNf/notnets_grpc"
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/registry"
 	pb "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/rate/proto"
@@ -39,11 +40,10 @@ type Server struct {
 	MongoClient *mongo.Client
 	Registry    *registry.Client
 	MemcClient  *memcache.Client
-
 }
 
 // Run starts the server
-func (s *Server) Run() error {
+func (s *Server) Run(_overShm bool) error {
 
 	if s.Port == 0 {
 		return fmt.Errorf("server port must be set")
@@ -53,7 +53,6 @@ func (s *Server) Run() error {
 
 	tp := otel.GetTracerProvider()
 	unaryInterceptor := otelgrpc.UnaryServerInterceptor(otelgrpc.WithTracerProvider(tp))
-
 
 	opts := []grpc.ServerOption{
 		grpc.KeepaliveParams(keepalive.ServerParameters{
@@ -72,22 +71,32 @@ func (s *Server) Run() error {
 		opts = append(opts, tlsopt)
 	}
 
-	srv := grpc.NewServer(opts...)
+	if _overShm {
+		srv := notnets_grpc.NewNotnetsServer()
+		pb.RegisterRateServer(srv, s)
 
-	pb.RegisterRateServer(srv, s)
+		// listener
+		lis := notnets_grpc.Listen("geo")
 
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
-	if err != nil {
-		log.Fatal().Msgf("failed to listen: %v", err)
+		return srv.Serve(lis)
+	} else {
+		srv := grpc.NewServer(opts...)
+
+		pb.RegisterRateServer(srv, s)
+
+		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
+		if err != nil {
+			log.Fatal().Msgf("failed to listen: %v", err)
+		}
+
+		err = s.Registry.Register(name, s.uuid, s.IpAddr, s.Port)
+		if err != nil {
+			return fmt.Errorf("failed register: %v", err)
+		}
+		log.Info().Msg("Successfully registered in consul")
+
+		return srv.Serve(lis)
 	}
-
-	err = s.Registry.Register(name, s.uuid, s.IpAddr, s.Port)
-	if err != nil {
-		return fmt.Errorf("failed register: %v", err)
-	}
-	log.Info().Msg("Successfully registered in consul")
-
-	return srv.Serve(lis)
 }
 
 // Shutdown cleans up any processes
@@ -109,10 +118,9 @@ func (s *Server) GetRates(ctx context.Context, req *pb.Request) (*pb.Result, err
 	}
 	// first check memcached(get-multi)
 	tracer := otel.GetTracerProvider().Tracer(uuid.NewString())
-	
-	_, memSpan := tracer.Start(ctx,"memcached_get_multi_rate")
-	memSpan.SetAttributes(attribute.String("span.kind", "client"))
 
+	_, memSpan := tracer.Start(ctx, "memcached_get_multi_rate")
+	memSpan.SetAttributes(attribute.String("span.kind", "client"))
 
 	resMap, err := s.MemcClient.GetMulti(hotelIds)
 	memSpan.End()
@@ -143,9 +151,9 @@ func (s *Server) GetRates(ctx context.Context, req *pb.Request) (*pb.Result, err
 				log.Trace().Msgf("memc miss, hotelId = %s", id)
 				log.Trace().Msg("memcached miss, set up mongo connection")
 
-				_, mongoSpan := tracer.Start(ctx,"mongo_rate")
+				_, mongoSpan := tracer.Start(ctx, "mongo_rate")
 				mongoSpan.SetAttributes(attribute.String("span.kind", "client"))
-			
+
 				// memcached miss, set up mongo connection
 				collection := s.MongoClient.Database("rate-db").Collection("inventory")
 				curr, err := collection.Find(context.TODO(), bson.D{})
@@ -177,8 +185,8 @@ func (s *Server) GetRates(ctx context.Context, req *pb.Request) (*pb.Result, err
 					}
 				}
 
-				go func(item *memcache.Item){
-					_, memSpan := tracer.Start(ctx,"memcached_set_rate")
+				go func(item *memcache.Item) {
+					_, memSpan := tracer.Start(ctx, "memcached_set_rate")
 					memSpan.SetAttributes(attribute.String("span.kind", "client"))
 					s.MemcClient.Set(item)
 					memSpan.End()

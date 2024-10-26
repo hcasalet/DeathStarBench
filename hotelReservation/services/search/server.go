@@ -5,6 +5,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/EIRNf/notnets_grpc"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/dialer"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/registry"
 	geo "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/geo/proto"
@@ -39,7 +40,7 @@ type Server struct {
 }
 
 // Run starts the server
-func (s *Server) Run() error {
+func (s *Server) Run(_overShm bool) error {
 	if s.Port == 0 {
 		return fmt.Errorf("server port must be set")
 	}
@@ -66,29 +67,39 @@ func (s *Server) Run() error {
 		opts = append(opts, tlsopt)
 	}
 
-	srv := grpc.NewServer(opts...)
-	pb.RegisterSearchServer(srv, s)
+	if _overShm {
+		srv := notnets_grpc.NewNotnetsServer()
+		pb.RegisterSearchServer(srv, s)
 
-	// init grpc clients
-	if err := s.initGeoClient("srv-geo"); err != nil {
-		return err
-	}
-	if err := s.initRateClient("srv-rate"); err != nil {
-		return err
-	}
+		// listener
+		lis := notnets_grpc.Listen("geo")
 
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
-	if err != nil {
-		log.Fatal().Msgf("failed to listen: %v", err)
-	}
+		return srv.Serve(lis)
+	} else {
+		srv := grpc.NewServer(opts...)
+		pb.RegisterSearchServer(srv, s)
 
-	err = s.Registry.Register(name, s.uuid, s.IpAddr, s.Port)
-	if err != nil {
-		return fmt.Errorf("failed register: %v", err)
-	}
-	log.Info().Msg("Successfully registered in consul")
+		// init grpc clients
+		if err := s.initGeoClient("srv-geo"); err != nil {
+			return err
+		}
+		if err := s.initRateClient("srv-rate"); err != nil {
+			return err
+		}
 
-	return srv.Serve(lis)
+		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
+		if err != nil {
+			log.Fatal().Msgf("failed to listen: %v", err)
+		}
+
+		err = s.Registry.Register(name, s.uuid, s.IpAddr, s.Port)
+		if err != nil {
+			return fmt.Errorf("failed register: %v", err)
+		}
+		log.Info().Msg("Successfully registered in consul")
+
+		return srv.Serve(lis)
+	}
 }
 
 // Shutdown cleans up any processes

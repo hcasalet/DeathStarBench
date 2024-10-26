@@ -45,6 +45,8 @@ func main() {
 	servPort, _ := strconv.Atoi(result["ReservePort"])
 	servIP := result["ReserveIP"]
 
+	_overSharedMem := result["overSharedMem"] == "true"
+
 	var (
 		consulAddr = flag.String("consuladdr", result["consulAddress"], "Consul address")
 	)
@@ -72,5 +74,5 @@ func main() {
 	}
 
 	log.Info().Msg("Starting server...")
-	log.Fatal().Msg(srv.Run().Error())
+	log.Fatal().Msg(srv.Run(_overSharedMem).Error())
 }
