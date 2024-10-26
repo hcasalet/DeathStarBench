@@ -74,7 +74,7 @@ func (s *Server) Run(_overShm bool) error {
 		pb.RegisterRecommendationServer(srv, s)
 
 		// listener
-		lis := notnets_grpc.Listen("geo")
+		lis := notnets_grpc.Listen("srv-recommendation")
 
 		return srv.Serve(lis)
 	} else {

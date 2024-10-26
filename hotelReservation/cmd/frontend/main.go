@@ -37,11 +37,13 @@ func main() {
 	servIP := result["FrontendIP"]
 	knativeDNS := result["KnativeDomainName"]
 
+	_overSharedMem := result["overSharedMem"] == "true"
+
 	var (
 		consulAddr = flag.String("consuladdr", result["consulAddress"], "Consul address")
 	)
 	flag.Parse()
-	 err = tracing.Init("frontend")
+	err = tracing.Init("frontend")
 	if err != nil {
 		log.Panic().Msgf("Got error while initializing open telemetry agent: %v", err)
 	}
@@ -63,5 +65,5 @@ func main() {
 	}
 
 	log.Info().Msg("Starting server...")
-	log.Fatal().Msg(srv.Run().Error())
+	log.Fatal().Msg(srv.Run(_overSharedMem).Error())
 }

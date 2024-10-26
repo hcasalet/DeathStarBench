@@ -82,7 +82,7 @@ func (s *Server) Run(_overShm bool) error {
 		pb.RegisterReviewServer(srv, s)
 
 		// listener
-		lis := notnets_grpc.Listen("geo")
+		lis := notnets_grpc.Listen("srv-review")
 
 		return srv.Serve(lis)
 	} else {

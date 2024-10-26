@@ -22,7 +22,10 @@ import (
 	"google.golang.org/grpc/keepalive"
 )
 
-const name = "srv-search"
+const (
+	name         = "srv-search"
+	MESSAGE_SIZE = 512000
+)
 
 // Server implments the search service
 type Server struct {
@@ -71,8 +74,16 @@ func (s *Server) Run(_overShm bool) error {
 		srv := notnets_grpc.NewNotnetsServer()
 		pb.RegisterSearchServer(srv, s)
 
+		// init grpc clients
+		if err := s.initGeoClient("srv-geo", true); err != nil {
+			return err
+		}
+		if err := s.initRateClient("srv-rate", true); err != nil {
+			return err
+		}
+
 		// listener
-		lis := notnets_grpc.Listen("geo")
+		lis := notnets_grpc.Listen("srv-search")
 
 		return srv.Serve(lis)
 	} else {
@@ -80,10 +91,10 @@ func (s *Server) Run(_overShm bool) error {
 		pb.RegisterSearchServer(srv, s)
 
 		// init grpc clients
-		if err := s.initGeoClient("srv-geo"); err != nil {
+		if err := s.initGeoClient("srv-geo", false); err != nil {
 			return err
 		}
-		if err := s.initRateClient("srv-rate"); err != nil {
+		if err := s.initRateClient("srv-rate", false); err != nil {
 			return err
 		}
 
@@ -107,21 +118,37 @@ func (s *Server) Shutdown() {
 	s.Registry.Deregister(s.uuid)
 }
 
-func (s *Server) initGeoClient(name string) error {
-	conn, err := s.getGprcConn(name)
-	if err != nil {
-		return fmt.Errorf("dialer error: %v", err)
+func (s *Server) initGeoClient(name string, overSharedMem bool) error {
+	if overSharedMem {
+		cc, err := notnets_grpc.Dial("clt-geo", name, MESSAGE_SIZE)
+		if err != nil {
+			return fmt.Errorf("shm dialer error: %v", err)
+		}
+		s.geoClient = geo.NewGeoClient(cc)
+	} else {
+		conn, err := s.getGprcConn(name)
+		if err != nil {
+			return fmt.Errorf("dialer error: %v", err)
+		}
+		s.geoClient = geo.NewGeoClient(conn)
 	}
-	s.geoClient = geo.NewGeoClient(conn)
 	return nil
 }
 
-func (s *Server) initRateClient(name string) error {
-	conn, err := s.getGprcConn(name)
-	if err != nil {
-		return fmt.Errorf("dialer error: %v", err)
+func (s *Server) initRateClient(name string, overSharedMem bool) error {
+	if overSharedMem {
+		cc, err := notnets_grpc.Dial("clt-rate", name, MESSAGE_SIZE)
+		if err != nil {
+			return fmt.Errorf("shm dialer error: %v", err)
+		}
+		s.rateClient = rate.NewRateClient(cc)
+	} else {
+		conn, err := s.getGprcConn(name)
+		if err != nil {
+			return fmt.Errorf("dialer error: %v", err)
+		}
+		s.rateClient = rate.NewRateClient(conn)
 	}
-	s.rateClient = rate.NewRateClient(conn)
 	return nil
 }
 

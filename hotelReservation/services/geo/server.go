@@ -75,7 +75,7 @@ func (s *Server) Run(_overshm bool) error {
 		pb.RegisterGeoServer(srv, s)
 
 		// listener
-		lis := notnets_grpc.Listen("geo")
+		lis := notnets_grpc.Listen("srv-geo")
 
 		return srv.Serve(lis)
 	} else {

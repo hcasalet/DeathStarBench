@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/EIRNf/notnets_grpc"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/dialer"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/registry"
 	attractions "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/attractions/proto"
@@ -23,6 +24,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 )
+
+const MESSAGE_SIZE = 512000
 
 var (
 	//go:embed static/*
@@ -47,7 +50,7 @@ type Server struct {
 }
 
 // Run the server
-func (s *Server) Run() error {
+func (s *Server) Run(_overShm bool) error {
 	if s.Port == 0 {
 		return fmt.Errorf("Server port must be set")
 	}
@@ -59,31 +62,31 @@ func (s *Server) Run() error {
 	}
 
 	log.Info().Msg("Initializing gRPC clients...")
-	if err := s.initSearchClient("srv-search"); err != nil {
+	if err := s.initSearchClient("srv-search", _overShm); err != nil {
 		return err
 	}
 
-	if err := s.initProfileClient("srv-profile"); err != nil {
+	if err := s.initProfileClient("srv-profile", _overShm); err != nil {
 		return err
 	}
 
-	if err := s.initRecommendationClient("srv-recommendation"); err != nil {
+	if err := s.initRecommendationClient("srv-recommendation", _overShm); err != nil {
 		return err
 	}
 
-	if err := s.initUserClient("srv-user"); err != nil {
+	if err := s.initUserClient("srv-user", _overShm); err != nil {
 		return err
 	}
 
-	if err := s.initReservation("srv-reservation"); err != nil {
+	if err := s.initReservation("srv-reservation", _overShm); err != nil {
 		return err
 	}
 
-	if err := s.initReviewClient("srv-review"); err != nil {
+	if err := s.initReviewClient("srv-review", _overShm); err != nil {
 		return err
 	}
 
-	if err := s.initAttractionsClient("srv-attractions"); err != nil {
+	if err := s.initAttractionsClient("srv-attractions", _overShm); err != nil {
 		return err
 	}
 
@@ -118,74 +121,130 @@ func (s *Server) Run() error {
 	}
 }
 
-func (s *Server) initSearchClient(name string) error {
-	conn, err := s.getGprcConn(name)
-	if err != nil {
-		return fmt.Errorf("dialer error: %v", err)
+func (s *Server) initSearchClient(name string, overSharedMem bool) error {
+	if overSharedMem {
+		cc, err := notnets_grpc.Dial("clt-search", name, MESSAGE_SIZE)
+		if err != nil {
+			return fmt.Errorf("shm dialer error: %v", err)
+		}
+		s.searchClient = search.NewSearchClient(cc)
+	} else {
+		conn, err := s.getGprcConn(name)
+		if err != nil {
+			return fmt.Errorf("dialer error: %v", err)
+		}
+		s.searchClient = search.NewSearchClient(conn)
 	}
-	s.searchClient = search.NewSearchClient(conn)
 	return nil
 }
 
-func (s *Server) initReviewClient(name string) error {
-	conn, err := dialer.Dial(
-		name,
-		dialer.WithTracer(),
-		dialer.WithBalancer(s.Registry.Client),
-	)
-	if err != nil {
-		return fmt.Errorf("dialer error: %v", err)
+func (s *Server) initReviewClient(name string, overSharedMem bool) error {
+	if overSharedMem {
+		cc, err := notnets_grpc.Dial("clt-review", name, MESSAGE_SIZE)
+		if err != nil {
+			return fmt.Errorf("shm dialer error: %v", err)
+		}
+		s.reviewClient = review.NewReviewClient(cc)
+	} else {
+		conn, err := dialer.Dial(
+			name,
+			dialer.WithTracer(),
+			dialer.WithBalancer(s.Registry.Client),
+		)
+		if err != nil {
+			return fmt.Errorf("dialer error: %v", err)
+		}
+		s.reviewClient = review.NewReviewClient(conn)
 	}
-	s.reviewClient = review.NewReviewClient(conn)
 	return nil
 }
 
-func (s *Server) initAttractionsClient(name string) error {
-	conn, err := dialer.Dial(
-		name,
-		dialer.WithTracer(),
-		dialer.WithBalancer(s.Registry.Client),
-	)
-	if err != nil {
-		return fmt.Errorf("dialer error: %v", err)
+func (s *Server) initAttractionsClient(name string, overSharedMem bool) error {
+	if overSharedMem {
+		cc, err := notnets_grpc.Dial("clt-attractions", name, MESSAGE_SIZE)
+		if err != nil {
+			return fmt.Errorf("shm dialer error: %v", err)
+		}
+		s.attractionsClient = attractions.NewAttractionsClient(cc)
+	} else {
+		conn, err := dialer.Dial(
+			name,
+			dialer.WithTracer(),
+			dialer.WithBalancer(s.Registry.Client),
+		)
+		if err != nil {
+			return fmt.Errorf("dialer error: %v", err)
+		}
+		s.attractionsClient = attractions.NewAttractionsClient(conn)
 	}
-	s.attractionsClient = attractions.NewAttractionsClient(conn)
 	return nil
 }
 
-func (s *Server) initProfileClient(name string) error {
-	conn, err := s.getGprcConn(name)
-	if err != nil {
-		return fmt.Errorf("dialer error: %v", err)
+func (s *Server) initProfileClient(name string, overSharedMem bool) error {
+	if overSharedMem {
+		cc, err := notnets_grpc.Dial("clt-profile", name, MESSAGE_SIZE)
+		if err != nil {
+			return fmt.Errorf("shm dialer error: %v", err)
+		}
+		s.profileClient = profile.NewProfileClient(cc)
+	} else {
+		conn, err := s.getGprcConn(name)
+		if err != nil {
+			return fmt.Errorf("dialer error: %v", err)
+		}
+		s.profileClient = profile.NewProfileClient(conn)
 	}
-	s.profileClient = profile.NewProfileClient(conn)
 	return nil
 }
 
-func (s *Server) initRecommendationClient(name string) error {
-	conn, err := s.getGprcConn(name)
-	if err != nil {
-		return fmt.Errorf("dialer error: %v", err)
+func (s *Server) initRecommendationClient(name string, overSharedMem bool) error {
+	if overSharedMem {
+		cc, err := notnets_grpc.Dial("clt-recommendation", name, MESSAGE_SIZE)
+		if err != nil {
+			return fmt.Errorf("shm dialer error: %v", err)
+		}
+		s.recommendationClient = recommendation.NewRecommendationClient(cc)
+	} else {
+		conn, err := s.getGprcConn(name)
+		if err != nil {
+			return fmt.Errorf("dialer error: %v", err)
+		}
+		s.recommendationClient = recommendation.NewRecommendationClient(conn)
 	}
-	s.recommendationClient = recommendation.NewRecommendationClient(conn)
 	return nil
 }
 
-func (s *Server) initUserClient(name string) error {
-	conn, err := s.getGprcConn(name)
-	if err != nil {
-		return fmt.Errorf("dialer error: %v", err)
+func (s *Server) initUserClient(name string, overSharedMem bool) error {
+	if overSharedMem {
+		cc, err := notnets_grpc.Dial("clt-user", name, MESSAGE_SIZE)
+		if err != nil {
+			return fmt.Errorf("shm dialer error: %v", err)
+		}
+		s.userClient = user.NewUserClient(cc)
+	} else {
+		conn, err := s.getGprcConn(name)
+		if err != nil {
+			return fmt.Errorf("dialer error: %v", err)
+		}
+		s.userClient = user.NewUserClient(conn)
 	}
-	s.userClient = user.NewUserClient(conn)
 	return nil
 }
 
-func (s *Server) initReservation(name string) error {
-	conn, err := s.getGprcConn(name)
-	if err != nil {
-		return fmt.Errorf("dialer error: %v", err)
+func (s *Server) initReservation(name string, overSharedMem bool) error {
+	if overSharedMem {
+		cc, err := notnets_grpc.Dial("clt-reservation", name, MESSAGE_SIZE)
+		if err != nil {
+			return fmt.Errorf("shm dialer error: %v", err)
+		}
+		s.reservationClient = reservation.NewReservationClient(cc)
+	} else {
+		conn, err := s.getGprcConn(name)
+		if err != nil {
+			return fmt.Errorf("dialer error: %v", err)
+		}
+		s.reservationClient = reservation.NewReservationClient(conn)
 	}
-	s.reservationClient = reservation.NewReservationClient(conn)
 	return nil
 }
 

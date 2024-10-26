@@ -76,7 +76,7 @@ func (s *Server) Run(_overShm bool) error {
 		pb.RegisterRateServer(srv, s)
 
 		// listener
-		lis := notnets_grpc.Listen("geo")
+		lis := notnets_grpc.Listen("srv-rate")
 
 		return srv.Serve(lis)
 	} else {

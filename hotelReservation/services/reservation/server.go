@@ -72,7 +72,7 @@ func (s *Server) Run(_overShm bool) error {
 		pb.RegisterReservationServer(srv, s)
 
 		// listener
-		lis := notnets_grpc.Listen("geo")
+		lis := notnets_grpc.Listen("srv-reservation")
 
 		return srv.Serve(lis)
 	} else {

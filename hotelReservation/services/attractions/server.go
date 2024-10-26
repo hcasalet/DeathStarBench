@@ -91,7 +91,7 @@ func (s *Server) Run(_overshm bool) error {
 		pb.RegisterAttractionsServer(srv, s)
 
 		// listener
-		lis := notnets_grpc.Listen("attraction")
+		lis := notnets_grpc.Listen("srv-attractions")
 
 		return srv.Serve(lis)
 	} else {
