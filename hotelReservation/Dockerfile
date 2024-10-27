@@ -19,6 +19,8 @@ COPY tune/ tune/
 
 COPY config.json config.json
 
+COPY /usr/local/lib/libnotnets.so /usr/local/lib/libnotnets.so
+
 # Build the Go application
 RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on go install -ldflags="-s -w" -mod=vendor ./cmd/...
 
