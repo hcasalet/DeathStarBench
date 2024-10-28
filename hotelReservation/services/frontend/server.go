@@ -25,7 +25,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-const MESSAGE_SIZE = 512000
+const MESSAGE_SIZE = 1024
 
 var (
 	//go:embed static/*

@@ -2,7 +2,6 @@ package tracing
 
 import (
 	"context"
-	"runtime"
 
 	otelpyroscope "github.com/grafana/otel-profiling-go"
 	"github.com/grafana/pyroscope-go"
@@ -45,7 +44,7 @@ var (
 // Init returns a newly configured tracer
 func Init(serviceName string) ( error) {
 
-	runtime.SetCPUProfileRate(2000)
+	// runtime.SetCPUProfileRate(2000)
 
 	ctx := context.Background()
 
