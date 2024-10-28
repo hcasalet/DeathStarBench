@@ -19,17 +19,37 @@ COPY tune/ tune/
 
 COPY config.json config.json
 
-COPY /usr/local/lib/libnotnets.so /usr/local/lib/libnotnets.so
+COPY notnets_shm/libnotnets/include /workspace/notnets_shm/libnotnets/include
+COPY notnets_shm/libnotnets/bin /workspace/notnets_shm/libnotnets/bin
+
+ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+ENV CGO_ENABLED=1
+ENV CGO_CFLAGS="-I/workspace/notnets_shm/libnotnets/include"
+ENV CGO_LDFLAGS="-L/workspace/notnets_shm/libnotnets/bin -lnotnets"
 
 # Build the Go application
-RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on go install -ldflags="-s -w" -mod=vendor ./cmd/...
+RUN GOOS=linux GO111MODULE=on go install -ldflags="-s -w" -mod=vendor ./cmd/...
 
 # Stage 2: Create the final image
-FROM alpine:latest
+FROM ubuntu:22.04
 
 WORKDIR /workspace
+
+# Install libstdc++ to match GCC 11.4
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libstdc++6 gcc libc-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Ensure the shared library is in a standard location
+COPY libnotnets.so /usr/local/lib/libnotnets.so
+
+# Set LD_LIBRARY_PATH to include /usr/local/lib
+ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
 # Copy the executables from the builder stage
 COPY --from=builder /go/bin/* /workspace/
 COPY --from=builder /workspace/config.json /workspace/config.json
+
+# Set the library path for runtime
+ENV LD_LIBRARY_PATH=/workspace/notnets_shm/libnotnets/bin:$LD_LIBRARY_PATH
 

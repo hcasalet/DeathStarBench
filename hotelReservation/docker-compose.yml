@@ -67,6 +67,7 @@ services:
       - LOG_LEVEL
     build: .
     image: deathstarbench/hotel-reservation:latest
+    shm_size: '512m'
     entrypoint: ./frontend
     ports:
       - "5000:5000"
@@ -77,6 +78,10 @@ services:
       replicas: 3
       restart_policy:
         condition: any
+    ipc: host
+    # Add a tmpfs mount as an alternative in Swarm
+    tmpfs:
+      - /dev/shm:size=512m
 
   profile:
     configs:
@@ -89,6 +94,7 @@ services:
       - LOG_LEVEL
     build: .
     image: deathstarbench/hotel-reservation:latest
+    shm_size: '512m'
     entrypoint: ./profile
     depends_on:
       - mongodb-profile
@@ -99,6 +105,10 @@ services:
       replicas: 1
       restart_policy:
         condition: any
+    ipc: host
+    # Add a tmpfs mount as an alternative in Swarm
+    tmpfs:
+      - /dev/shm:size=512m
 
   search:
     configs:
@@ -111,6 +121,7 @@ services:
       - LOG_LEVEL
     build: .
     image: deathstarbench/hotel-reservation:latest
+    shm_size: '512m'
     entrypoint: ./search
     depends_on:
       - consul
@@ -119,6 +130,10 @@ services:
       replicas: 1
       restart_policy:
         condition: any
+    ipc: host
+    # Add a tmpfs mount as an alternative in Swarm
+    tmpfs:
+      - /dev/shm:size=512m
 
   geo:
     configs:
@@ -131,6 +146,7 @@ services:
       - LOG_LEVEL
     build: .
     image: deathstarbench/hotel-reservation:latest
+    shm_size: '512m'
     entrypoint: ./geo
     depends_on:
       - mongodb-geo
@@ -140,6 +156,10 @@ services:
       replicas: 1
       restart_policy:
         condition: any
+    ipc: host
+    # Add a tmpfs mount as an alternative in Swarm
+    tmpfs:
+      - /dev/shm:size=512m
 
   rate:
     configs:
@@ -152,6 +172,7 @@ services:
       - LOG_LEVEL
     build: .
     image: deathstarbench/hotel-reservation:latest
+    shm_size: '512m'
     entrypoint: ./rate
     depends_on:
       - mongodb-rate
@@ -162,6 +183,10 @@ services:
       replicas: 1
       restart_policy:
         condition: any
+    ipc: host
+    # Add a tmpfs mount as an alternative in Swarm
+    tmpfs:
+      - /dev/shm:size=512m
 
   review:
     environment:
@@ -172,6 +197,7 @@ services:
       - LOG_LEVEL
     build: .
     image: hotel_reserv_review_single_node
+    shm_size: '512m'
     entrypoint: ./review
     container_name: 'hotel_reserv_review'
     depends_on:
@@ -179,6 +205,7 @@ services:
       - memcached-review
       - consul
     restart: always
+    ipc: host
   
   attractions:
     environment:
@@ -189,12 +216,14 @@ services:
       - LOG_LEVEL
     build: .
     image: hotel_reserv_attractions_single_node
+    shm_size: '512m'
     entrypoint: ./attractions
     container_name: 'hotel_reserv_attractions'
     depends_on:
       - mongodb-attractions
       - consul
     restart: always
+    ipc: host
 
   recommendation:
     configs:
@@ -207,6 +236,7 @@ services:
       - LOG_LEVEL
     build: .
     image: deathstarbench/hotel-reservation:latest
+    shm_size: '512m'
     entrypoint: ./recommendation
     depends_on:
       - mongodb-recommendation
@@ -216,6 +246,10 @@ services:
       replicas: 1
       restart_policy:
         condition: any
+    ipc: host
+    # Add a tmpfs mount as an alternative in Swarm
+    tmpfs:
+      - /dev/shm:size=512m
 
   user:
     configs:
@@ -228,6 +262,7 @@ services:
       - LOG_LEVEL
     build: .
     image: deathstarbench/hotel-reservation:latest
+    shm_size: '512m'
     entrypoint: ./user
     depends_on:
       - mongodb-user
@@ -237,6 +272,10 @@ services:
       replicas: 1
       restart_policy:
         condition: any
+    ipc: host
+    # Add a tmpfs mount as an alternative in Swarm
+    tmpfs:
+      - /dev/shm:size=512m
 
   reservation:
     configs:
@@ -249,6 +288,7 @@ services:
       - LOG_LEVEL
     build: .
     image: deathstarbench/hotel-reservation:latest
+    shm_size: '512m'
     entrypoint: ./reservation
     depends_on:
       - mongodb-reservation
@@ -259,6 +299,10 @@ services:
       replicas: 1
       restart_policy:
         condition: any
+    ipc: host
+    # Add a tmpfs mount as an alternative in Swarm
+    tmpfs:
+      - /dev/shm:size=512m
 
   memcached-rate:
     image: memcached:latest
@@ -274,6 +318,9 @@ services:
       replicas: 1
       restart_policy:
         condition: any
+    # Add a tmpfs mount as an alternative in Swarm
+    tmpfs:
+      - /dev/shm:size=512m
 
   memcached-review:
     image: memcached
