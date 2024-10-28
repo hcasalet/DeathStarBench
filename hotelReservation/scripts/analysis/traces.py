@@ -9,32 +9,36 @@ import tempo_extract
 import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
-    base_url = "http://localhost:3200"
-    client = tempo_extract.TempoClient(base_url)
     
-    os.makedirs("trace_collection", exist_ok=True)
-    # Extract traces with different duration bounds
-    for i in range(40):
-        bound = 25 * i
-        min_duration = 0 + bound
-        max_duration = 25 + bound
+    extract = True
+    
+    if extract == True:
+        base_url = "http://localhost:3200"
+        client = tempo_extract.TempoClient(base_url)
         
-        min =  str(min_duration) + "ms"
-        max = str(max_duration) + "ms"
-        query = {
-            "minDuration": min,
-            "maxDuration": max,
-            "limit": 20000,
-            "http.status_code": "200",
-            "name": "/hotels",
-            "kind": "server",
-            "tags" : {
-                "service.name": "frontend"
+        os.makedirs("trace_collection", exist_ok=True)
+        # Extract traces with different duration bounds
+        for i in range(40):
+            bound = 25 * i
+            min_duration = 0 + bound
+            max_duration = 25 + bound
+            
+            min =  str(min_duration) + "ms"
+            max = str(max_duration) + "ms"
+            query = {
+                "minDuration": min,
+                "maxDuration": max,
+                "limit": 20000,
+                "http.status_code": "200",
+                "name": "/hotels",
+                "kind": "server",
+                "tags" : {
+                    "service.name": "frontend"
+                }
             }
-        }
-        traces = tempo_extract.collect_traces_with_query(client, query)
-        with open(f'trace_collection/traces_min_{min_duration}_max_{max_duration}.json', 'w') as f:
-            json.dump(traces, f, indent=4)
+            traces = tempo_extract.collect_traces_with_query(client, query)
+            with open(f'trace_collection/traces_min_{min_duration}_max_{max_duration}.json', 'w') as f:
+                json.dump(traces, f, indent=4)
     
     
     trace_durations = []
@@ -49,6 +53,10 @@ if __name__ == "__main__":
         tset = trace_inspector.TraceSet(os.path.join("trace_collection", trace_file))
         
         root_spans = tset.get_root_spans()
+        
+        internal_labels = {"kind": "SPAN_KIND_INTERNAL"}
+        internal_spans = tset.filter_out_traces(internal_labels)
+        root_spans = [ span for span in root_spans if span not in internal_spans ]  
         
         for root_span in root_spans:
             # print(f"Root Span: {root_span}")
@@ -83,7 +91,7 @@ if __name__ == "__main__":
     number_of_messages = len(trace_durations)        
     print(f"Number of Messages: {number_of_messages}")
         
-    # # Plot the first series
+    # Plot the first series
     # plt.scatter(trace_durations, span_durations, label='server_span_durations', marker='o')
     # # Plot the second series
     # plt.scatter(trace_durations, gap_durations, label='gap_durations', marker='x')
@@ -95,7 +103,7 @@ if __name__ == "__main__":
     internal_span_durations = np.array(internal_durations)
     client_span_durations = np.array(gap_durations)
 
-    # Create a stacked bar chart
+    # # Create a stacked bar chart
     plt.bar(trace_durations, server_span_durations, label='Server Span Durations')
     plt.bar(trace_durations, internal_span_durations, bottom=server_span_durations, label='Internal Span Durations')
     plt.bar(trace_durations, client_span_durations, bottom=server_span_durations + internal_span_durations, label='Client Span Durations')

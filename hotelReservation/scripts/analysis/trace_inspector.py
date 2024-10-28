@@ -105,6 +105,15 @@ class TraceSet:
             json_traces = json.load(f)
         return json_traces   
     
+    def filter_out_traces(self, field_values) -> list[Span]:
+        matching_traces = []
+        for root_span in self.root_spans:
+            
+            spans = root_span.find_spans_by_fields(field_values)
+            if len(spans) > 0:
+                matching_traces.append(root_span)
+        return matching_traces
+    
     def parse_traces(self, traces) -> list[Span]:
         span_dict = {}
         root_spans = []
