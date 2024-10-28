@@ -8,6 +8,12 @@ COPY go.sum go.sum
 COPY go.mod go.mod
 COPY vendor/ vendor/
 
+# Add the replace directive to point to the local copy of notnets_grpc within the container
+RUN go mod edit -replace github.com/EINRf/notnets_grpc=/workspace/notnets_grpc
+
+# Sync the vendor directory to include the replacement
+RUN go mod vendor
+
 # Copy the source code
 COPY cmd/ cmd/
 COPY dialer/ dialer/
@@ -18,8 +24,8 @@ COPY tracing/ tracing/
 COPY tune/ tune/
 
 COPY config.json config.json
-
-COPY notnets_grpc/ notnets_grpc/
+COPY notnets_grpc notnets_grpc
+COPY notnets_grpc/notnets_shm notnets_grpc/notnets_shm
 
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 ENV CGO_ENABLED=1
@@ -40,7 +46,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 # Ensure the shared library is in a standard location
-COPY libnotnets.so /usr/local/lib/libnotnets.so
+COPY notnets_grpc/notnets_shm/libnotnets/bin/libnotnets.so /usr/local/lib/libnotnets.so
 
 # Set LD_LIBRARY_PATH to include /usr/local/lib
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
