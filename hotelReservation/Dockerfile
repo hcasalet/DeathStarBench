@@ -40,7 +40,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 # Ensure the shared library is in a standard location
-COPY libnotnets.so /usr/local/lib/libnotnets.so
+COPY notnets_grpc/notnets_shm/libnotnets/bin/libnotnets.so /usr/local/lib/libnotnets.so
 
 # Set LD_LIBRARY_PATH to include /usr/local/lib
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
