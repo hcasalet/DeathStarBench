@@ -1,3 +1,6 @@
 [submodule "wrk2/deps/luajit"]
 	path = wrk2/deps/luajit
 	url = https://github.com/LuaJIT/LuaJIT.git
+[submodule "hotelReservation/notnets_grpc"]
+	path = hotelReservation/notnets_grpc
+	url = git@github.com:EIRNf/notnets_grpc.git
