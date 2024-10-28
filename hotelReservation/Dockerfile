@@ -19,13 +19,12 @@ COPY tune/ tune/
 
 COPY config.json config.json
 
-COPY notnets_shm/libnotnets/include /workspace/notnets_shm/libnotnets/include
-COPY notnets_shm/libnotnets/bin /workspace/notnets_shm/libnotnets/bin
+COPY notnets_grpc/ notnets_grpc/
 
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 ENV CGO_ENABLED=1
-ENV CGO_CFLAGS="-I/workspace/notnets_shm/libnotnets/include"
-ENV CGO_LDFLAGS="-L/workspace/notnets_shm/libnotnets/bin -lnotnets"
+ENV CGO_CFLAGS="-I/workspace/notnets_grpc/notnets_shm/libnotnets/include"
+ENV CGO_LDFLAGS="-L/workspace/notnets_grpc/notnets_shm/libnotnets/bin -lnotnets"
 
 # Build the Go application
 RUN GOOS=linux GO111MODULE=on go install -ldflags="-s -w" -mod=vendor ./cmd/...
