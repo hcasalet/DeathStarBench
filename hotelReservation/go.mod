@@ -4,6 +4,8 @@ go 1.22
 
 toolchain go1.23.2
 
+replace github.com/EIRNf/notnets_grpc => ./notnets_grpc
+
 require (
 	github.com/EIRNf/notnets_grpc v0.0.0-20241025031340-9b21afb7cec6
 	github.com/bradfitz/gomemcache v0.0.0-20230905024940-24af94b03874
@@ -79,3 +81,4 @@ require (
 )
 
 replace github.com/hashicorp/consul => github.com/hashicorp/consul v1.15.7
+

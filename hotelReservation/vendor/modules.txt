@@ -1,4 +1,4 @@
-# github.com/EIRNf/notnets_grpc v0.0.0-20241025031340-9b21afb7cec6
+# github.com/EIRNf/notnets_grpc v0.0.0-20241025031340-9b21afb7cec6 => ./notnets_grpc
 ## explicit; go 1.20
 github.com/EIRNf/notnets_grpc
 github.com/EIRNf/notnets_grpc/internal
@@ -394,4 +394,5 @@ google.golang.org/protobuf/types/known/wrapperspb
 # modernc.org/libc v1.40.6
 ## explicit; go 1.20
 modernc.org/libc/pthread
+# github.com/EIRNf/notnets_grpc => ./notnets_grpc
 # github.com/hashicorp/consul => github.com/hashicorp/consul v1.15.7
