@@ -4,18 +4,9 @@ FROM golang:1.22 as builder
 WORKDIR /workspace
 
 # Copy necessary files for dependency resolution
-COPY go.sum go.mod ./
+COPY go.sum .
+COPY go.mod .
 COPY vendor/ vendor/
-
-ARG CACHE_BUST=1
-COPY notnets_grpc notnets_grpc
-COPY notnets_grpc/notnets_shm notnets_grpc/notnets_shm
-
-# Add the replace directive to point to the local copy of notnets_grpc within the container
-RUN go mod edit -replace github.com/EINRf/notnets_grpc=/workspace/notnets_grpc
-
-# Sync the vendor directory to include the replacement
-RUN go mod vendor
 
 # Copy the source code
 COPY cmd/ cmd/
@@ -26,15 +17,15 @@ COPY tls/ tls/
 COPY tracing/ tracing/
 COPY tune/ tune/
 COPY config.json config.json
+COPY notnets_grpc/ notnets_grpc/
 
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 ENV CGO_ENABLED=1
 ENV CGO_CFLAGS="-I/workspace/notnets_grpc/notnets_shm/libnotnets/include"
 ENV CGO_LDFLAGS="-L/workspace/notnets_grpc/notnets_shm/libnotnets/bin -lnotnets"
-ENV GOFLAGS="-mod=mod"
 
 # Build the Go application
-RUN GOOS=linux GO111MODULE=on go install -ldflags="-s -w" ./cmd/...
+RUN GOOS=linux GO111MODULE=on go install -ldflags="-s -w" -mod=mod ./cmd/...
 
 # Stage 2: Create the final image
 FROM ubuntu:22.04
