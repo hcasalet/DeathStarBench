@@ -31,9 +31,10 @@ ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 ENV CGO_ENABLED=1
 ENV CGO_CFLAGS="-I/workspace/notnets_grpc/notnets_shm/libnotnets/include"
 ENV CGO_LDFLAGS="-L/workspace/notnets_grpc/notnets_shm/libnotnets/bin -lnotnets"
+ENV GOFLAGS="-mod=mod"
 
 # Build the Go application
-RUN GOOS=linux GO111MODULE=on go install -ldflags="-s -w" -mod=vendor ./cmd/...
+RUN GOOS=linux GO111MODULE=on go install -ldflags="-s -w" ./cmd/...
 
 # Stage 2: Create the final image
 FROM ubuntu:22.04
