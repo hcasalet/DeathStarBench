@@ -36,11 +36,19 @@ class Span:
         return int(span.end_time) - int(span.start_time)
     
     def get_graph_signature_from_root(self):
+        signatures = self.construct_graph_signature_from_root() 
+        return '|'.join(signatures)
+    
+    def construct_graph_signature_from_root(self):
         signature = []
         signature.append(self.operation_name)
+        
         for child in self.children:
-            signature.append(child.get_graph_signature_from_root())
-        return '-'.join(signature)
+            
+            child_signatures = child.construct_graph_signature_from_root()
+            signature.extend(child_signatures)
+            
+        return signature
         
     def get_start_gap_duration_of_parent(self, span):
         parent_span = self.get_span(span.parent_span_id)

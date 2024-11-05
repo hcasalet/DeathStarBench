@@ -1,3 +1,5 @@
+from concurrent.futures import ProcessPoolExecutor
+
 import requests
 import json
 
@@ -36,13 +38,22 @@ class TempoClient:
 def collect_traces_with_query(client, query):
     traces = []
     search_results = client.query_traces(query)
-   
+    trace_ids = []
+
     print(f"Num Traces: {len(search_results.get('traces', []))}") 
     for trace in search_results.get('traces', []):
         trace_id = trace.get('traceID')
         if trace_id:
-            trace_data = client.get_trace(trace_id)
-            traces.append(trace_data)
+            trace_ids.append(trace_id)
+
+            #trace_data = client.get_trace(trace_id)
+            #traces.append(trace_data)
+    
+    with ProcessPoolExecutor(max_workers=8) as executor:
+        for trace_data in executor.map(client.get_trace, trace_ids):
+            if trace_data:
+                traces.append(trace_data)
+
     return traces
 
 def main():
@@ -53,7 +64,7 @@ def main():
     
     query = {
         # 2024-10-22 10:31:40
-        # "startTime": "2024-10-22T10:31:40Z",
+        "start": "2024-10-22T10:31:40Z",
         # "end": "2023-12-31T23:59:59Z",
         "minDuration": "100ms",
         "maxDuration": "200ms",

@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
     
-    extract = False
+    extract = True
     
     if extract == True:
         base_url = "http://localhost:3200"
@@ -18,19 +18,21 @@ if __name__ == "__main__":
         
         os.makedirs("trace_collection", exist_ok=True)
         # Extract traces with different duration bounds
-        for i in range(40):
-            bound = 25 * i
+        for i in reversed(range(250)):
+            bound = 10 * i
             min_duration = 0 + bound
-            max_duration = 25 + bound
+            max_duration = 10 + bound
             
             min =  str(min_duration) + "ms"
             max = str(max_duration) + "ms"
             query = {
                 "minDuration": min,
                 "maxDuration": max,
-                "limit": 20000,
+                "start": 1730787782,
+                "end": 1730787842,
+                "limit": 2000,
                 "http.status_code": "200",
-                "name": "/reservation",
+                # "name": "/hotels",
                 "kind": "server",
                 "tags" : {
                     "service.name": "frontend"
