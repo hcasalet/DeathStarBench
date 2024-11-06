@@ -24,7 +24,8 @@ import (
 
 const (
 	name         = "srv-search"
-	MESSAGE_SIZE = 1024
+	MESSAGE_SIZE = 2048 //32kb
+	LARGE_MESSAGE_SIZE = 4194304 //4MB
 )
 
 // Server implments the search service
@@ -137,7 +138,7 @@ func (s *Server) initGeoClient(name string, overSharedMem bool) error {
 
 func (s *Server) initRateClient(name string, overSharedMem bool) error {
 	if overSharedMem {
-		cc, err := notnets_grpc.Dial("clt-rate", name, MESSAGE_SIZE)
+		cc, err := notnets_grpc.Dial("clt-rate", name, LARGE_MESSAGE_SIZE)
 		if err != nil {
 			return fmt.Errorf("shm dialer error: %v", err)
 		}

@@ -25,7 +25,9 @@ import (
 	"google.golang.org/grpc"
 )
 
-const MESSAGE_SIZE = 1024
+const MESSAGE_SIZE = 2048
+const LARGE_MESSAGE_SIZE = 4194304 //1MB
+
 
 var (
 	//go:embed static/*
@@ -140,7 +142,7 @@ func (s *Server) initSearchClient(name string, overSharedMem bool) error {
 
 func (s *Server) initReviewClient(name string, overSharedMem bool) error {
 	if overSharedMem {
-		cc, err := notnets_grpc.Dial("clt-review", name, MESSAGE_SIZE)
+		cc, err := notnets_grpc.Dial("clt-review", name, LARGE_MESSAGE_SIZE)
 		if err != nil {
 			return fmt.Errorf("shm dialer error: %v", err)
 		}

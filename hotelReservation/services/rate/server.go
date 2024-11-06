@@ -28,6 +28,8 @@ import (
 )
 
 const name = "srv-rate"
+const LARGE_MESSAGE_SIZE = 4194304 //1MB
+
 
 // Server implements the rate service
 type Server struct {
@@ -72,7 +74,7 @@ func (s *Server) Run(_overShm bool) error {
 	}
 
 	if _overShm {
-		srv := notnets_grpc.NewNotnetsServer()
+		srv := notnets_grpc.NewNotnetsServer(notnets_grpc.SetMessageSize(LARGE_MESSAGE_SIZE))
 		pb.RegisterRateServer(srv, s)
 
 		// listener
