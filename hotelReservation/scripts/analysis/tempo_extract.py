@@ -1,7 +1,9 @@
 from concurrent.futures import ProcessPoolExecutor
+import urllib.request
 
 import requests
 import json
+import urllib
 
 class TempoClient:
     def __init__(self, base_url):
@@ -25,6 +27,9 @@ class TempoClient:
 
     def query_traces(self, query):
         url = f"{self.base_url}/api/search"
+        
+        
+        # print(requests.get(url, params=query).request.path_url)
         response = requests.get(url, params=query)
         response.raise_for_status()
         return response.json()
@@ -60,25 +65,23 @@ def main():
     base_url = "http://localhost:3200"
     client = TempoClient(base_url)
 
-    print(f" Tags: { client.get_tags()}")
+    # print(f" Tags: { client.get_tags()}")
+    
     
     query = {
-        # 2024-10-22 10:31:40
-        "start": "2024-10-22T10:31:40Z",
-        # "end": "2023-12-31T23:59:59Z",
-        "minDuration": "100ms",
-        "maxDuration": "200ms",
-        "limit": 20,
+        "limit": 2,
         "kind": "server",
-        "tags" : {
-            "service.name": "frontend"
-        }
+        "tags": ["http.status_code=200", "http.target=\hotels"],
+        # "tags=http.target": "\hotels"
+        # "tags" : {
+        #     "http.status_code": "200"
+        # }
     }
 
-    # traces = collect_traces_with_query(client, query)
+    traces = collect_traces_with_query(client, query)
 
-    # with open('traces.json', 'w') as f:
-        # json.dump(traces, f, indent=4)
+    with open('traces.json', 'w') as f:
+        json.dump(traces, f, indent=4)
 
 if __name__ == "__main__":
     main()

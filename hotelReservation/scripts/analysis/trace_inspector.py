@@ -164,6 +164,10 @@ class TraceSet:
     def get_root_spans(self):
         return self.root_spans
     
+    def get_proportional_root_span_duration_exclude_children(self, root: Span) -> float:
+        duration_excluding_children = self._calculate_durations(root)
+        return duration_excluding_children / root.get_span_duration(root)
+    
     def get_dict_of_span_durations(self, spans: list[Span]) -> dict[Span, float]:
         durations = {}
         for span in spans:
@@ -233,7 +237,7 @@ class TraceSet:
             sum += durations[duration[0]]
         return sum
     
-    def aggregate_proportional_span_durations(self, proportional_durations: dict[Span, tuple[float,float]]) -> float:
+    def aggregate_gap_span_durations(self, proportional_durations: dict[Span, tuple[float,float]]) -> float:
         return sum([durations[0] + durations[1] for durations in proportional_durations.values()])
         
     def print_span_durations(self, durations: dict[Span, float]):
@@ -292,7 +296,7 @@ if __name__ == "__main__":
         # tset.print_proportional_span_durations(tset.get_proporational_durations(root_span, [root_span.get_span(span_id) for span_id in matching_span_ids]))
         # tset.print_proportional_duration_of_gaps_with_parent(tset.get_proportional_durations_of_gaps(root_span, [root_span.get_span(span_id) for span_id in matching_span_ids]))
         print("Aggregate Server-Client Gap Span Durations:")
-        print(tset.aggregate_proportional_span_durations(tset.get_proportional_durations_of_gaps(root_span, [root_span.get_span(span_id) for span_id in server_span_ids])))
+        print(tset.aggregate_gap_span_durations(tset.get_proportional_durations_of_gaps(root_span, [root_span.get_span(span_id) for span_id in server_span_ids])))
         print("Aggregate Server Span Durations:")
         print(tset.aggregate_span_durations( tset.get_proporational_durations(root_span, [root_span.get_span(span_id) for span_id in server_span_ids])))
         print("Aggregate Internal Span Durations:")
