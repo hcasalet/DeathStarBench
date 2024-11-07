@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	defaultSampleRatio float64 = 1.0
+	defaultSampleRatio float64 = 0.01
 )
 
 // func InitTracer(serviceName string) func() {
@@ -61,7 +61,7 @@ func Init(serviceName string) ( error) {
 		),)
 
 	bsp := trace.NewBatchSpanProcessor(exp)
-	tp := trace.NewTracerProvider(trace.WithResource(res), trace.WithSpanProcessor(bsp), trace.WithSampler(trace.AlwaysSample()))
+	tp := trace.NewTracerProvider(trace.WithResource(res), trace.WithSpanProcessor(bsp), trace.WithSampler(trace.TraceIDRatioBased(defaultSampleRatio)))
 
 	// Create the OTLP trace provider with the exporter
 	// and wrap it with the pyroscope tracer provider

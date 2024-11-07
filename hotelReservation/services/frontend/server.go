@@ -26,7 +26,7 @@ import (
 )
 
 const MESSAGE_SIZE = 2048
-const LARGE_MESSAGE_SIZE = 4194304 //1MB
+const LARGE_MESSAGE_SIZE = 2097152 //1MB
 
 
 var (

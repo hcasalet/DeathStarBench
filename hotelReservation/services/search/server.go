@@ -25,7 +25,7 @@ import (
 const (
 	name         = "srv-search"
 	MESSAGE_SIZE = 2048 //32kb
-	LARGE_MESSAGE_SIZE = 4194304 //4MB
+	LARGE_MESSAGE_SIZE = 2097152 //4MB
 )
 
 // Server implments the search service

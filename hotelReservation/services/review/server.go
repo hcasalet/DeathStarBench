@@ -35,7 +35,7 @@ import (
 )
 
 const name = "srv-review"
-const LARGE_MESSAGE_SIZE = 4194304 //1MB
+const LARGE_MESSAGE_SIZE = 2097152 //1MB
 
 // Server implements the rate service
 type Server struct {

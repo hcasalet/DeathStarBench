@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	defaultGCPercent        int    = 100
-	defaultMemCTimeout      int    = 2
+	defaultGCPercent        int    = 1000
+	defaultMemCTimeout      int    = 10
 	defaultMemCMaxIdleConns int    = 512
 	defaultLogLevel         string = "info"
 )
