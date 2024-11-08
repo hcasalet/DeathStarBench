@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package benchmark;
+
+option go_package="github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/benchmark";
+
+service Benchmark {
+  rpc SlowService(Request) returns (Result);
+  rpc FastService(Request) returns (Result);
+}
+
+message Request {
+  bool large_response = 1;
+  repeated LoadPayload load = 2;
+}
+
+message Result {
+  repeated LoadPayload load = 1;
+}
+
+message LoadPayload {
+  string data = 1;
+}
