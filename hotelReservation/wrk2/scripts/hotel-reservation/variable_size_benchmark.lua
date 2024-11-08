@@ -5,7 +5,7 @@ math.random(); math.random(); math.random()
 local url = "http://localhost:5000"
 
 local function benchmark_fast()
-    local large_response = false
+    local large_response = "false"
   
     local method = "GET"
     local path = url .. "/benchmark/fast?large_response=" .. large_response .. "&num_kb=" .. num_kb
@@ -18,7 +18,7 @@ request = function()
   local large_ratio      = 0.1
   local small_ratio   = 0.9
 
-  large_message_kb = 10
+  large_message_kb = 1000
   small_message_kb = 1
 
   local coin = math.random()

@@ -36,9 +36,8 @@ func main() {
 	var result map[string]string
 	json.Unmarshal([]byte(byteValue), &result)
 
-	log.Info().Msg("Initializing DB connection...")
 
-	servPort, _ := strconv.Atoi(result["UserPort"])
+	servPort, _ := strconv.Atoi(result["BenchmarkPort"])
 	servIP := result["UserIP"]
 
 	var (
@@ -46,7 +45,7 @@ func main() {
 	)
 	flag.Parse()
 
-	err = tracing.Init("user")
+	err = tracing.Init("benchmark")
 	if err != nil {
 		log.Panic().Msgf("Got error while initializing open telemetry agent: %v", err)
 	}
