@@ -81,6 +81,15 @@ func (s *Server) Shutdown() {
 	s.Registry.Deregister(s.uuid)
 }
 
+func GetBasePayload(num_chunks int) []*pb.LoadPayload {
+	payload := []*pb.LoadPayload{}
+	for i := 0; i < num_chunks; i++ {
+		payload = append(payload, &pb.LoadPayload{Data: "pzxpcmfmzqozppzbrmgrjoaridoqxtxbnhsbkskwtaivdnltiuuyeescbmhxsogxyxklgelwfahvhgowxqlunthogrsumhmowwgfclowwlqudiwrxgdmylinvfdipyewvhfeehfkcxwjhcayowkonrdtxfwiwyepibmzdacoqfebtqbhfawroxpzywlhqdvwhsusylnqkbfdhwpriqafbmdnusqurelxzdabxhtxkcacimtwqvbeastkmgtlbvhmxbeyeqwomroshgjoazheimxsjziktbcfjynxkkckcgdvnabgvqthkftdcvnwsrosukfsakswqvgceqwmemvvwvhrymomfooqiawlitsucrojldmtjpbquhnsusdkcumubecfyhuldvexecuiucktnxouwsatqpcyiowhriwkbubwcjekmfwavzaetqhddplrcqoxlvsdomvijvltwgzelvtdojxcolgsdvzcxssfcxxegmjxeyhuqpzxinthioqlbmwvqlgjwclkjxuprbbvxqatuikwmqdoashecroztxxxcpnuwhepcwwqsgvfosefahxeyoxpolpbnkcfcwilhltglqbrjxzlaizurznchkyhfnswahnwtpvdalahwbfsatudnuvgvqmjriqsueyvnagcuydmhmquwslyzmmzthxcctkrldbkxqicycqsszaiwocwrhapsyjkwgldxkxcrwlcacbfcjxwuvjqmeslpgijjgtyqarwtzncbpkdqntowehooyumsdylcxhxbtsjuifahpabwohknexqanslhhaekdobqngxatjpmudcoydtuipwrorkawwpjngnbtblxfvcjelsalbfeojlzrfabcjqpsyyynqnfzlzawgebejexwnfzbchlzakynfmpynlcsxregnuavwadqdnfsysgqpqrhqsvzuzednryudotwsgdofbekhowwvxhvpfcwsabxyinigubpmrrrwwzaiaevlvjhyiuspviokvdcfyssya"}) // 1KB
+		
+	}
+	return payload
+}
+
 func (s *Server) SlowService(ctx context.Context, in *pb.Request) (*pb.Result, error) {
 
 	payload_ret := []*pb.LoadPayload{}

@@ -11,6 +11,9 @@ import (
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/dialer"
 	"github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/registry"
 	attractions "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/attractions/proto"
+	benchmark_service "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/benchmark"
+
+	benchmark "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/benchmark/proto"
 	profile "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/profile/proto"
 	recommendation "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/recommendation/proto"
 	reservation "github.com/delimitrou/DeathStarBench/tree/master/hotelReservation/services/reservation/proto"
@@ -31,6 +34,7 @@ var (
 
 // Server implements frontend service
 type Server struct {
+	benchmarkClient      benchmark.BenchmarkClient
 	searchClient         search.SearchClient
 	profileClient        profile.ProfileClient
 	recommendationClient recommendation.RecommendationClient
@@ -59,6 +63,9 @@ func (s *Server) Run() error {
 	}
 
 	log.Info().Msg("Initializing gRPC clients...")
+	if err := s.initBenchmarkClient("srv-benchmark"); err != nil {
+		return err
+	}
 	if err := s.initSearchClient("srv-search"); err != nil {
 		return err
 	}
@@ -101,6 +108,9 @@ func (s *Server) Run() error {
 	mux.Handle("/cinema", http.HandlerFunc(s.cinemaHandler))
 	mux.Handle("/reservation", http.HandlerFunc(s.reservationHandler))
 
+	mux.Handle("/benchmark/slow", http.HandlerFunc(s.slowBenchmarkHandler))
+	mux.Handle("/benchmark/fast", http.HandlerFunc(s.fastBenchmarkHandler))
+
 	log.Trace().Msg("frontend starts serving")
 
 	tlsconfig := tls.GetHttpsOpt()
@@ -116,6 +126,15 @@ func (s *Server) Run() error {
 		log.Info().Msg("Serving http")
 		return srv.ListenAndServe()
 	}
+}
+
+func (s *Server) initBenchmarkClient(name string) error {
+	conn, err := s.getGprcConn(name)
+	if err != nil {
+		return fmt.Errorf("dialer error: %v", err)
+	}
+	s.benchmarkClient = benchmark.NewBenchmarkClient(conn)
+	return nil
 }
 
 func (s *Server) initSearchClient(name string) error {
@@ -205,6 +224,57 @@ func (s *Server) getGprcConn(name string) (*grpc.ClientConn, error) {
 			dialer.WithBalancer(s.Registry.Client),
 		)
 	}
+}
+
+func (s *Server) slowBenchmarkHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	ctx := r.Context()
+
+	large_response, num_kb := r.URL.Query().Get("large_response"), r.URL.Query().Get("num_kb")
+
+	num, _ := strconv.ParseInt(num_kb, 10, 0)
+	large, _ := strconv.ParseBool(large_response)
+
+	// get benchmark request
+	benchmarkReq := &benchmark.Request{LargeResponse: large, Load: benchmark_service.GetBasePayload(int(num))}
+
+	// call benchmark service
+	benchmarkResp, err := s.benchmarkClient.SlowService(ctx, benchmarkReq) 
+
+	// send benchmark request
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// respond with benchmark response
+	json.NewEncoder(w).Encode(benchmarkResp)
+}
+
+func (s *Server) fastBenchmarkHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	ctx := r.Context()
+
+	
+	large_response, num_kb := r.URL.Query().Get("large_response"), r.URL.Query().Get("num_kb")
+
+	num, _ := strconv.ParseInt(num_kb, 10, 0)
+	large, _ := strconv.ParseBool(large_response)
+
+	// get benchmark request
+	benchmarkReq := &benchmark.Request{LargeResponse: large, Load: benchmark_service.GetBasePayload(int(num))}
+
+	// call benchmark service
+	benchmarkResp, err := s.benchmarkClient.FastService(ctx, benchmarkReq) 
+
+	// send benchmark request
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// respond with benchmark response
+	json.NewEncoder(w).Encode(benchmarkResp)
 }
 
 func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
