@@ -13,6 +13,16 @@ local function benchmark_fast()
     return wrk.format(method, path, headers, nil)
 end 
 
+local function benchmark_slow()
+  local large_response = math.random(0, 1)
+  local num_kb = math.random(1, 10)
+
+  local method = "GET"
+  local path = url .. "/benchmark/slow?large_response=" .. large_response .. "&num_kb=" .. num_kb
+  local headers = {}
+  return wrk.format(method, path, headers, nil)
+end
+
 request = function()
   cur_time = math.floor(socket.gettime())
   local large_ratio      = 0.1
@@ -24,7 +34,7 @@ request = function()
   local coin = math.random()
   if coin < large_ratio then
     num_kb = large_message_kb
-    return benchmark_fast(url, num_kb)
+    return benchmark_slow(url, num_kb)
   elseif coin < small_ratio then
     num_kb = small_message_kb
     return benchmark_fast(url, num_kb)

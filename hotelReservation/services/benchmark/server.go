@@ -18,8 +18,8 @@ import (
 )
 
 const name = "srv-benchmark"
-const slow_service_iter = 100000
-const fast_service_iter = 1000
+const slow_service_iter = 100
+const fast_service_iter = 100
 
 // Server implements the user service
 type Server struct {
