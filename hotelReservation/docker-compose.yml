@@ -120,6 +120,25 @@ services:
       restart_policy:
         condition: any
 
+
+  benchmark:
+    configs:
+      - source: server_config
+        target: /config.json
+    environment:
+      - TLS
+      - GC
+      - JAEGER_SAMPLE_RATIO
+      - LOG_LEVEL
+    build: .
+    image: deathstarbench/hotel-reservation:latest
+    entrypoint: ./benchmark
+    restart: always
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+
   geo:
     configs:
       - source: server_config
