@@ -9,15 +9,13 @@ import trace_inspector
 import tempo_extract
 import matplotlib.pyplot as plt
     
-def main(extract, start, end, window):
+def main(extract, start, end, window, num_buckets):
     
     base_url = "http://localhost:3200"
     client = tempo_extract.TempoClient(base_url)
         
     os.makedirs("trace_collection", exist_ok=True)
         
-
-
     ### Extract traces
     if extract == True:
         query = {
@@ -31,12 +29,20 @@ def main(extract, start, end, window):
             query["end"] = end
         
         # Extract traces with different duration bounds
-        for i in reversed(range(250)):
-            bound = window * i
-            min_duration = 0 + bound
-            max_duration = window + bound
-            min =  str(min_duration) + "ms"
-            max = str(max_duration) + "ms"
+        for i in reversed(range(num_buckets)):
+            # Max Value, capture whole tail
+            if i == num_buckets - 1:
+                bound = window * i
+                min_duration = 0 + bound
+                max_duration = window + (bound * i )
+                min =  str(min_duration) + "ms"
+                max = str(max_duration) + "ms"
+            else:
+                bound = window * i
+                min_duration = 0 + bound
+                max_duration = window + bound
+                min =  str(min_duration) + "ms"
+                max = str(max_duration) + "ms"
             
             query["minDuration"] = min
             query["maxDuration"] = max
@@ -177,8 +183,9 @@ if __name__ == "__main__":
     parser.add_argument("--start", type=int, help="Start time for trace extraction")
     parser.add_argument("--end", type=int, help="End time for trace extraction")
     parser.add_argument("--window", type=int, default=10, help="Window size for trace extraction")
+    parser.add_argument("--num-buckets", type=int, default=250, help="Number of buckets for trace extraction querying")
 
 
     args = parser.parse_args()
-    main(args.extract, args.start, args.end, args.window)
+    main(args.extract, args.start, args.end, args.window, args.num_buckets)
     

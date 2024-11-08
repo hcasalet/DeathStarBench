@@ -29,9 +29,10 @@ class TempoClient:
         url = f"{self.base_url}/api/search"
         
         
-        # print(requests.get(url, params=query).request.path_url)
         response = requests.get(url, params=query)
+        
         response.raise_for_status()
+        
         return response.json()
 
     def get_trace(self, trace_id):
