@@ -31,7 +31,7 @@ class TempoClient:
         
         response = requests.get(url, params=query)
         
-        response.raise_for_status()
+        # response.raise_for_status()
         
         return response.json()
 
@@ -46,7 +46,7 @@ def collect_traces_with_query(client, query):
     search_results = client.query_traces(query)
     trace_ids = []
 
-    print(f"Num Traces: {len(search_results.get('traces', []))}") 
+    print(f"Num Traces: {len(search_results.get('traces', []))} for query: {query}") 
     for trace in search_results.get('traces', []):
         trace_id = trace.get('traceID')
         if trace_id:
@@ -55,7 +55,7 @@ def collect_traces_with_query(client, query):
             #trace_data = client.get_trace(trace_id)
             #traces.append(trace_data)
     
-    with ProcessPoolExecutor(max_workers=8) as executor:
+    with ProcessPoolExecutor(max_workers=16) as executor:
         for trace_data in executor.map(client.get_trace, trace_ids):
             if trace_data:
                 traces.append(trace_data)

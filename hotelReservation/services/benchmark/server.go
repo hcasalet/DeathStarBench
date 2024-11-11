@@ -21,6 +21,10 @@ const name = "srv-benchmark"
 const slow_service_iter = 100
 const fast_service_iter = 100
 
+var (
+	payload_map = make(map[int][]*pb.LoadPayload)
+)
+
 // Server implements the user service
 type Server struct {
 	pb.UnimplementedBenchmarkServer
@@ -30,6 +34,7 @@ type Server struct {
 	Registry    *registry.Client
 	Port        int
 	IpAddr      string
+
 
 }
 
@@ -82,11 +87,18 @@ func (s *Server) Shutdown() {
 }
 
 func GetBasePayload(num_chunks int) []*pb.LoadPayload {
+
+	if payload_map[num_chunks] != nil {
+		return payload_map[num_chunks]
+	}
+
 	payload := []*pb.LoadPayload{}
 	for i := 0; i < num_chunks; i++ {
 		payload = append(payload, &pb.LoadPayload{Data: "pzxpcmfmzqozppzbrmgrjoaridoqxtxbnhsbkskwtaivdnltiuuyeescbmhxsogxyxklgelwfahvhgowxqlunthogrsumhmowwgfclowwlqudiwrxgdmylinvfdipyewvhfeehfkcxwjhcayowkonrdtxfwiwyepibmzdacoqfebtqbhfawroxpzywlhqdvwhsusylnqkbfdhwpriqafbmdnusqurelxzdabxhtxkcacimtwqvbeastkmgtlbvhmxbeyeqwomroshgjoazheimxsjziktbcfjynxkkckcgdvnabgvqthkftdcvnwsrosukfsakswqvgceqwmemvvwvhrymomfooqiawlitsucrojldmtjpbquhnsusdkcumubecfyhuldvexecuiucktnxouwsatqpcyiowhriwkbubwcjekmfwavzaetqhddplrcqoxlvsdomvijvltwgzelvtdojxcolgsdvzcxssfcxxegmjxeyhuqpzxinthioqlbmwvqlgjwclkjxuprbbvxqatuikwmqdoashecroztxxxcpnuwhepcwwqsgvfosefahxeyoxpolpbnkcfcwilhltglqbrjxzlaizurznchkyhfnswahnwtpvdalahwbfsatudnuvgvqmjriqsueyvnagcuydmhmquwslyzmmzthxcctkrldbkxqicycqsszaiwocwrhapsyjkwgldxkxcrwlcacbfcjxwuvjqmeslpgijjgtyqarwtzncbpkdqntowehooyumsdylcxhxbtsjuifahpabwohknexqanslhhaekdobqngxatjpmudcoydtuipwrorkawwpjngnbtblxfvcjelsalbfeojlzrfabcjqpsyyynqnfzlzawgebejexwnfzbchlzakynfmpynlcsxregnuavwadqdnfsysgqpqrhqsvzuzednryudotwsgdofbekhowwvxhvpfcwsabxyinigubpmrrrwwzaiaevlvjhyiuspviokvdcfyssya"}) // 1KB
 		
 	}
+
+	payload_map[num_chunks] = payload
 	return payload
 }
 

@@ -26,8 +26,8 @@ end
 
 request = function()
   cur_time = math.floor(socket.gettime())
-  local slow_ratio      = 0.1
-  local fast_ratio   = 0.9
+  local slow_ratio      = 0.01
+  local fast_ratio   = 0.99
 
   large_message_kb = 10
   small_message_kb = 1

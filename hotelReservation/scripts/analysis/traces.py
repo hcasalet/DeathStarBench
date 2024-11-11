@@ -19,7 +19,7 @@ def main(extract, start, end, window, num_buckets):
     ### Extract traces
     if extract == True:
         query = {
-            "limit": 10000,
+            "limit": 500,
             "kind": "server",
             "tags": ["http.status_code=200"],
         }
@@ -35,14 +35,14 @@ def main(extract, start, end, window, num_buckets):
                 bound = window * i
                 min_duration = 0 + bound
                 max_duration = window + (bound * i )
-                min =  str(min_duration) + "ms"
-                max = str(max_duration) + "ms"
+                min =  str(min_duration) + "us"
+                max = str(max_duration) + "us"
             else:
                 bound = window * i
                 min_duration = 0 + bound
                 max_duration = window + bound
-                min =  str(min_duration) + "ms"
-                max = str(max_duration) + "ms"
+                min =  str(min_duration) + "us"
+                max = str(max_duration) + "us"
             
             query["minDuration"] = min
             query["maxDuration"] = max
@@ -176,6 +176,40 @@ def main(extract, start, end, window, num_buckets):
         plt.savefig(f"trace_durations_{name}.png")
         plt.clf()
         plt.cla()
+     
+import math
+def calculate_cochran_sample_size(Z, p, e, N=None):
+    """
+    Calculates the Cochran sample size.
+
+    Args:
+        Z: Z-value for the desired confidence level (e.g., 1.96 for 95% confidence)
+        p: Estimated proportion of the population with the attribute (e.g., 0.5 if unknown)
+        e: Desired margin of error (e.g., 0.05)
+        N: Population size (optional, if known)
+
+    Returns:
+        The Cochran sample size.
+    """
+
+    n_0 = (Z**2 * p * (1 - p)) / e**2
+
+    if N is not None:
+        n = n_0 / (1 + (n_0 - 1) / N)
+    else:
+        n = n_0
+
+    return math.ceil(n)
+
+# Example usage
+Z = 1.96  # Z-value for 95% confidence level
+p = 0.5  # Estimated proportion (use 0.5 if unknown)
+e = 0.05  # Desired margin of error
+N = 1000  # Population size (if known)
+
+sample_size = calculate_cochran_sample_size(Z, p, e, N)
+print(f"Sample size: {sample_size}")
+
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Trace parsing script")
