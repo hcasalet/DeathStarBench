@@ -20,6 +20,8 @@ import (
 	"google.golang.org/grpc/encoding"
 	grpcproto "google.golang.org/grpc/encoding/proto"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/hashicorp/yamux"
 )
 
 func Dial(local_addr, remote_addr string, message_size int32) (*NotnetsChannel, error) {
@@ -60,33 +62,14 @@ func Dial(local_addr, remote_addr string, message_size int32) (*NotnetsChannel, 
 				break
 			}
 		}
-
 	}
+	ch.session_conn, _ = yamux.Client(ch.conn, nil)
 
 	log.Info().Msgf("Client: New Channel: %v \n ", ch.conn.queues.queues.ClientId)
 	log.Info().Msgf("Client: New Channel RequestShmid: %v \n ", ch.conn.queues.queues.RequestShmaddr)
 	log.Info().Msgf("Client: New Channel RespomseShmid: %v \n ", ch.conn.queues.queues.ResponseShmaddr)
 
 	ch.conn.isConnected = true
-
-	// ch.request_payload_buffer = make([]byte, MESSAGE_SIZE)
-	// ch.request_buffer = bytes.NewReader(ch.request_payload_buffer)
-
-	// ch.variable_read_buffer = bytes.NewBuffer(nil)
-	// ch.fixed_read_buffer = make([]byte, MESSAGE_SIZE)
-
-	// ch.request_reader = bufio.NewReader(ch.variable_read_buffer)
-	// ch.request_reader = bytes.NewBuffer(nil)
-
-	// ch.response_reader = bufio.NewReader(ch.variable_read_buffer)
-
-	// writer = io.Writer
-
-	// encoder = json.NewEncoder(writer)
-	// decoder = json.NewDecoder(reader)
-
-	// ch.dec = sonic.ConfigDefault.NewDecoder(ch.variable_read_buffer)
-
 	return ch, nil
 }
 
@@ -94,6 +77,7 @@ type NotnetsChannel struct {
 	conn *NotnetsConn
 	message_size int32
 
+	session_conn *yamux.Session
 	// request_payload_buffer []byte
 
 	// fixed_read_buffer    []byte
@@ -121,11 +105,6 @@ var _ grpc.ClientConnInterface = (*NotnetsChannel)(nil)
 const UnaryRpcContentType_V1 = "application/x-protobuf"
 
 func (ch *NotnetsChannel) Invoke(ctx context.Context, methodName string, req, resp interface{}, opts ...grpc.CallOption) error {
-	//Tranlsate grpcCallOptions to Notnets call options
-
-	// runtime.LockOSThread()
-	// var json = jsoniter.ConfigCompatibleWithStandardLibrary
-
 	log.Trace().Msgf("Client:  Request: %s \n ", req)
 
 	//Get Call Options
@@ -162,8 +141,17 @@ func (ch *NotnetsChannel) Invoke(ctx context.Context, methodName string, req, re
 	log.Trace().Msgf("Client: Serialized Request: %s \n ", writeBuffer)
 
 	//START MESSAGING
+
+	// Open a new stream to handle this request:
+	stream, err := ch.session_conn.Open()
+	if err != nil {
+		panic(err)
+	}
+
+	stream.Write(writeBuffer.Bytes())
+
 	// pass into shared mem queue
-	ch.conn.Write(writeBuffer.Bytes())
+	// ch.conn.Write(writeBuffer.Bytes())
 
 	// var fixed_read_buffer []byte
 	// var variable_read_buffer bytes.Buffer
@@ -174,7 +162,8 @@ func (ch *NotnetsChannel) Invoke(ctx context.Context, methodName string, req, re
 	//Receive Request
 	//iterate and append to dynamically allocated data until all data is read
 	for {
-		size, err := ch.conn.Read(fixed_response_buffer)
+
+		size, err := stream.Read(fixed_response_buffer)
 		if err != nil {
 			log.Error().Msgf("Client: Read Error: %s", err)
 			return err

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	otelpyroscope "github.com/grafana/otel-profiling-go"
-	"github.com/grafana/pyroscope-go"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
@@ -82,24 +81,24 @@ func Init(serviceName string) ( error) {
 	// wrappedTracer := spanprofiler.NewTracer(openTracingBridgeTracer)
 
 
-	pyroscope.Start(pyroscope.Config{
-		ApplicationName: serviceName,
-		// replace this with the address of pyroscope server
-		ServerAddress:   "http://172.17.0.1:4040",
+	// pyroscope.Start(pyroscope.Config{
+	// 	ApplicationName: serviceName,
+	// 	// replace this with the address of pyroscope server
+	// 	ServerAddress:   "http://172.17.0.1:4040",
 	
-		// you can disable logging by setting this to nil
-		// Logger:          pyroscope.StandardLogger,
+	// 	// you can disable logging by setting this to nil
+	// 	// Logger:          pyroscope.StandardLogger,
 	
-		// by default all profilers are enabled,
-		// but you can select the ones you want to use:
-		// ProfileTypes: []pyroscope.ProfileType{
-		//   pyroscope.ProfileCPU,
-		//   pyroscope.ProfileAllocObjects,
-		//   pyroscope.ProfileAllocSpace,
-		//   pyroscope.ProfileInuseObjects,
-		//   pyroscope.ProfileInuseSpace,
-		// },
-	  })
+	// 	// by default all profilers are enabled,
+	// 	// but you can select the ones you want to use:
+	// 	// ProfileTypes: []pyroscope.ProfileType{
+	// 	//   pyroscope.ProfileCPU,
+	// 	//   pyroscope.ProfileAllocObjects,
+	// 	//   pyroscope.ProfileAllocSpace,
+	// 	//   pyroscope.ProfileInuseObjects,
+	// 	//   pyroscope.ProfileInuseSpace,
+	// 	// },
+	//   })
 
 
 
