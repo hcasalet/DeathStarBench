@@ -25,18 +25,18 @@ end
 
 request = function()
   cur_time = math.floor(socket.gettime())
-  local large_ratio      = 0.1
-  local small_ratio   = 0.9
+  local large_ratio      = 0.25
+  local small_ratio   = 0.75
 
   large_message_kb = 1000
   small_message_kb = 1
 
   local coin = math.random()
-  if coin < large_ratio then
-    num_kb = large_message_kb
-    return benchmark_slow(url, num_kb)
-  elseif coin < small_ratio then
+  if coin < small_ratio then
     num_kb = small_message_kb
     return benchmark_fast(url, num_kb)
+  elseif coin < small_ratio + large_ratio then
+    num_kb = large_message_kb
+    return benchmark_slow(url, num_kb)
   end
 end
