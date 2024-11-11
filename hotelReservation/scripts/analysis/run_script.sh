@@ -28,6 +28,6 @@ output=$(../../../wrk2/wrk -D exp -t20 -c1000 -d45s -L -s ../../wrk2/scripts/hot
 end_time=$(echo $EPOCHSECONDS)
 
 # Save the ouput to file
-echo $output > output.txt
+echo $output > output.txtw
 
 # python3.11 traces.py --extract --start=$start_time --end=$end_time --window=2
