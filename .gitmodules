@@ -1,3 +1,6 @@
 [submodule "wrk2/deps/luajit"]
 	path = wrk2/deps/luajit
 	url = https://github.com/LuaJIT/LuaJIT.git
+[submodule "notnets"]
+	path = notnets
+	url = git@github.com:EIRNf/notnets_grpc.git
