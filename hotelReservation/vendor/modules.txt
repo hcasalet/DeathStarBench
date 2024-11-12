@@ -41,18 +41,6 @@ github.com/google/uuid
 # github.com/grafana/otel-profiling-go v0.5.1
 ## explicit; go 1.16
 github.com/grafana/otel-profiling-go
-# github.com/grafana/pyroscope-go v1.2.0
-## explicit; go 1.17
-github.com/grafana/pyroscope-go
-github.com/grafana/pyroscope-go/internal/flameql
-github.com/grafana/pyroscope-go/internal/pprof
-github.com/grafana/pyroscope-go/internal/sortedmap
-github.com/grafana/pyroscope-go/upstream
-github.com/grafana/pyroscope-go/upstream/remote
-# github.com/grafana/pyroscope-go/godeltaprof v0.1.8
-## explicit; go 1.18
-github.com/grafana/pyroscope-go/godeltaprof
-github.com/grafana/pyroscope-go/godeltaprof/internal/pprof
 # github.com/grpc-ecosystem/grpc-gateway/v2 v2.22.0
 ## explicit; go 1.21
 github.com/grpc-ecosystem/grpc-gateway/v2/internal/httprule
@@ -97,14 +85,15 @@ github.com/jpillora/backoff
 # github.com/klauspost/compress v1.17.8
 ## explicit; go 1.20
 github.com/klauspost/compress
-github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
-github.com/klauspost/compress/gzip
 github.com/klauspost/compress/huff0
 github.com/klauspost/compress/internal/cpuinfo
 github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
+# github.com/libp2p/go-buffer-pool v0.0.2
+## explicit; go 1.12
+github.com/libp2p/go-buffer-pool
 # github.com/mattn/go-colorable v0.1.13
 ## explicit; go 1.15
 github.com/mattn/go-colorable
@@ -142,6 +131,8 @@ github.com/rs/zerolog
 github.com/rs/zerolog/internal/cbor
 github.com/rs/zerolog/internal/json
 github.com/rs/zerolog/log
+# github.com/stretchr/objx v0.5.2
+## explicit; go 1.20
 # github.com/xdg-go/pbkdf2 v1.0.0
 ## explicit; go 1.9
 github.com/xdg-go/pbkdf2
