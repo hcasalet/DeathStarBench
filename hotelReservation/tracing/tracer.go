@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	defaultSampleRatio float64 = 1.0
+	defaultSampleRatio float64 = 0.01
 )
 
 // func InitTracer(serviceName string) func() {
@@ -45,7 +45,7 @@ var (
 // Init returns a newly configured tracer
 func Init(serviceName string) ( error) {
 
-	runtime.SetCPUProfileRate(2000)
+	// runtime.SetCPUProfileRate(2000)
 
 	ctx := context.Background()
 
@@ -83,24 +83,24 @@ func Init(serviceName string) ( error) {
 	// wrappedTracer := spanprofiler.NewTracer(openTracingBridgeTracer)
 
 
-	pyroscope.Start(pyroscope.Config{
-		ApplicationName: serviceName,
-		// replace this with the address of pyroscope server
-		ServerAddress:   "http://172.17.0.1:4040",
+	// pyroscope.Start(pyroscope.Config{
+	// 	ApplicationName: serviceName,
+	// 	// replace this with the address of pyroscope server
+	// 	ServerAddress:   "http://172.17.0.1:4040",
 	
-		// you can disable logging by setting this to nil
-		// Logger:          pyroscope.StandardLogger,
+	// 	// you can disable logging by setting this to nil
+	// 	// Logger:          pyroscope.StandardLogger,
 	
-		// by default all profilers are enabled,
-		// but you can select the ones you want to use:
-		// ProfileTypes: []pyroscope.ProfileType{
-		//   pyroscope.ProfileCPU,
-		//   pyroscope.ProfileAllocObjects,
-		//   pyroscope.ProfileAllocSpace,
-		//   pyroscope.ProfileInuseObjects,
-		//   pyroscope.ProfileInuseSpace,
-		// },
-	  })
+	// 	// by default all profilers are enabled,
+	// 	// but you can select the ones you want to use:
+	// 	// ProfileTypes: []pyroscope.ProfileType{
+	// 	//   pyroscope.ProfileCPU,
+	// 	//   pyroscope.ProfileAllocObjects,
+	// 	//   pyroscope.ProfileAllocSpace,
+	// 	//   pyroscope.ProfileInuseObjects,
+	// 	//   pyroscope.ProfileInuseSpace,
+	// 	// },
+	//   })
 
 
 
