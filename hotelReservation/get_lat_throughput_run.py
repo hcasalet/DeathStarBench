@@ -58,30 +58,26 @@ def load_and_parse_files_in_order(directory):
 
 def main():
     command_template = "../wrk2/wrk -D exp -t16 -c1000 -d30s -L -s ./wrk2/scripts/hotel-reservation/mixed-workload_type_1.lua http://127.0.0.1:5000 -R{}"
-    # target_throughput = [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000,5500,6000,6500, 7000, 8000, 9000,10000,11000]  # Example parameter values
-    target_throughput = [20, 30, 40, 50, 60, 70, 80, 90, 100,110,120,130, 140, 150, 160,170,180]  # Example parameter values
+    
+    target_throughput = list(range(1000, 17000, 1000))  
+    exp_notnets = ExpRun(f"target_notnets_hybrid_poll")
 
-    # target_throughput = [8500, 9000,9500,10000,10500,11000]  # Example parameter values
-
-
-    # exp_notnets = ExpRun(f"target_notnets_full_rate")
-
-    # for target in target_throughput:
-    #     command = command_template.format(target)
-    #     output = run_command(command)
-    #     save_output_to_file(output, f"{exp_notnets.run_name}",f"{exp_notnets.run_name}/throughput_{target}.txt")
+    for target in target_throughput:
+        command = command_template.format(target)
+        output = run_command(command)
+        save_output_to_file(output, f"{exp_notnets.run_name}",f"{exp_notnets.run_name}/throughput_{target}.txt")
         
-    #     throughput, latency_p50,  latency_p75, latency_p90, latency_p99 = parse_output(output)
-    #     print(f"Throughput: {throughput}, Latency p50: {latency_p50}, Latency p75: {latency_p75}, Latency p90: {latency_p90}, Latency p99: {latency_p99}")
-    #     exp_notnets.throughput.append(target)
-    #     exp_notnets.latency_p50.append(latency_p50)
-    #     exp_notnets.latency_p75.append(latency_p75)
-    #     exp_notnets.latency_p90.append(latency_p90)
-    #     exp_notnets.latency_p99.append(latency_p99)
+        throughput, latency_p50,  latency_p75, latency_p90, latency_p99 = parse_output(output)
+        print(f"Throughput: {throughput}, Latency p50: {latency_p50}, Latency p75: {latency_p75}, Latency p90: {latency_p90}, Latency p99: {latency_p99}")
+        exp_notnets.throughput.append(target)
+        exp_notnets.latency_p50.append(latency_p50)
+        exp_notnets.latency_p75.append(latency_p75)
+        exp_notnets.latency_p90.append(latency_p90)
+        exp_notnets.latency_p99.append(latency_p99)
         
         
-    baseline = load_and_parse_files_in_order("target_baseline")
-    exp_notnets = load_and_parse_files_in_order("target_notnets")
+    baseline = load_and_parse_files_in_order("target_baseline_hybrid_poll")
+    exp_notnets = load_and_parse_files_in_order("target_notnets_hybrid_poll")
 
 
     plt.plot(exp_notnets.throughput, exp_notnets.latency_p50, marker='o', label='notnets_p50')
