@@ -98,6 +98,7 @@ Deploying instructions:
   % cd wrk2   // from DeathStarBench root
   % git submodule update --init --recursive
   % sudo apt-get update
+  % sudo apt install openssl libssl-dev libz-dev
   % sudo apt-get install luarocks
   % sudo luarocks install luasocket
   % make
