@@ -7,7 +7,7 @@ import argparse
 
 import matplotlib.pyplot as plt
 
-def run_command(command: str, print_output: bool | None = True, print_error: bool | None = True) -> str:
+def run_command(command: str, print_output: bool | None = None, print_error: bool | None = None) -> str:
     print(f"Running command: {command}")
     result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if result.returncode != 0:
@@ -52,7 +52,8 @@ class ExpRun:
         self.latency_p99 = []
     
         
-    def set_experiment_environment(self, submodule_branch, config_file_updates, clear_shm):
+    def set_experiment_environment(self, submodule_branch, config_file_updates,clear_shm):
+
         # switch and build submodule branch
         if submodule_branch:
             run_command(f"cd ../notnets_grpc/notnets_shm && git checkout {submodule_branch} && make && sudo make install && cd ../../scripts")
@@ -71,11 +72,14 @@ class ExpRun:
         # Clear shared memory
         if clear_shm:
             run_command("cd ../notnets_grpc && sudo ./clear_all.sh root m && cd ../scripts")
+                
+
+    def  down_application(self):
+        # Clear previous deployments: docker compose down
+        run_command("docker-compose down")
             
    
     def deploy_application(self):
-        # Clear previous deployments: docker compose down
-        run_command("docker-compose down")
         # Docker Compose Up
         run_command("docker-compose up -d --build", print_output=False, print_error=False)
         
@@ -211,22 +215,25 @@ def main():
     experiments = []
     
     if args.run_experiment:
-        exp_baseline = ExpRun("baseline")
-        exp_baseline.set_experiment_environment(None, {"overSharedMem": "false"}, True)
-        exp_baseline.deploy_application()
-        exp_baseline.run_experiment(run_command_template, target_throughput, save_output_to_file)
+        # exp_baseline = ExpRun("baseline")
+        # exp_baseline.down_application()
+        # exp_baseline.set_experiment_environment(None, {"overSharedMem": "false"}, True)
+        # exp_baseline.deploy_application()
+        # exp_baseline.run_experiment(run_command_template, target_throughput, save_output_to_file)
         
         
-        exp_notnets_full_polling = ExpRun("notnets-full_polling")
-        exp_notnets_full_polling.set_experiment_environment("main", {"overSharedMem": "true"}, True)
-        exp_notnets_full_polling.deploy_application()
-        # monitor connection time
-        monitor_system_call("ipcs", "root", "2", monitor_num_rows_for_value=26)
-        exp_notnets_full_polling.run_experiment(run_command_template, target_throughput, save_output_to_file)
+        # exp_notnets_full_polling = ExpRun("notnets-full_polling")
+        # exp_notnets_full_polling.down_application()
+        # exp_notnets_full_polling.set_experiment_environment("main", {"overSharedMem": "true"}, True)
+        # exp_notnets_full_polling.deploy_application()
+        # # monitor connection time
+        # monitor_system_call("ipcs", "root", "2", monitor_num_rows_for_value=26)
+        # exp_notnets_full_polling.run_experiment(run_command_template, target_throughput, save_output_to_file)
         
 
         
         exp_notnets_adaptive_polling = ExpRun("notnets-adaptive_polling")
+        exp_notnets_adaptive_polling.down_application()
         exp_notnets_adaptive_polling.set_experiment_environment("esiramos/adaptive_polling", {"overSharedMem": "true"}, True)
         exp_notnets_adaptive_polling.deploy_application()
         monitor_system_call("ipcs", "root", "2", monitor_num_rows_for_value=26)
