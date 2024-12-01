@@ -5,6 +5,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/bradfitz/gomemcache/memcache"
@@ -18,6 +19,11 @@ var (
 	defaultMemCMaxIdleConns int    = 512
 	defaultLogLevel         string = "info"
 )
+
+func setPR_SET_TIMERSLACK(){
+	syscall.Syscall(syscall.SYS_PRCTL, syscall.PR_SET_TIMERSLACK, 1, 0)
+
+}
 
 func setGCPercent() {
 	ratio := defaultGCPercent
@@ -96,4 +102,5 @@ func NewMemCClient2(servers string) *memcache.Client {
 func Init() {
 	setLogLevel()
 	setGCPercent()
+	setPR_SET_TIMERSLACK()
 }
