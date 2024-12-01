@@ -128,6 +128,9 @@ def load_experiment_from_directory(directory) -> ExpRun:
 
 
 def graph_exp_list(experiments, graph_title ,fig_name):
+    
+    plt.style.use('tableau-colorblind10')
+
     for exp in experiments:
         plt.plot(exp.throughput, exp.latency_p50, marker='o', label=f'{exp.run_name}_p50')
         plt.plot(exp.throughput, exp.latency_p99, marker='^', label=f'{exp.run_name}_p99')
@@ -138,6 +141,9 @@ def graph_exp_list(experiments, graph_title ,fig_name):
     plt.title(graph_title)
     plt.grid(True)
     plt.legend() 
+    
+   
+    
     plt.savefig(fig_name)
 
 
@@ -232,26 +238,37 @@ def main():
         
 
         
-        exp_notnets_adaptive_polling = ExpRun("notnets-adaptive_polling")
-        exp_notnets_adaptive_polling.down_application()
-        exp_notnets_adaptive_polling.set_experiment_environment("esiramos/adaptive_polling", {"overSharedMem": "true"}, True)
-        exp_notnets_adaptive_polling.deploy_application()
+        # exp_notnets_adaptive_polling = ExpRun("notnets-adaptive_polling")
+        # exp_notnets_adaptive_polling.down_application()
+        # exp_notnets_adaptive_polling.set_experiment_environment("esiramos/adaptive_polling", {"overSharedMem": "true"}, True)
+        # exp_notnets_adaptive_polling.deploy_application()
+        # monitor_system_call("ipcs", "root", "2", monitor_num_rows_for_value=26)
+        # exp_notnets_adaptive_polling.run_experiment(run_command_template, target_throughput, save_output_to_file)
+        
+
+
+        exp_notnets_initial_adaptive_polling = ExpRun("notnets-initial_adaptive_polling")
+        exp_notnets_initial_adaptive_polling.down_application()
+
+        exp_notnets_initial_adaptive_polling.set_experiment_environment("esiramos/initial_adaptive_polling", {"overSharedMem": "true"}, True)
+        exp_notnets_initial_adaptive_polling.deploy_application()
         monitor_system_call("ipcs", "root", "2", monitor_num_rows_for_value=26)
-        exp_notnets_adaptive_polling.run_experiment(run_command_template, target_throughput, save_output_to_file)
+
+        exp_notnets_initial_adaptive_polling.run_experiment(run_command_template, target_throughput, save_output_to_file)
         
+        
+        exp_notnets_hybrid_mean_polling = ExpRun("notnets-hybrid_mean_polling")
+        exp_notnets_hybrid_mean_polling.down_application()
+
+        exp_notnets_hybrid_mean_polling.set_experiment_environment("esiramos/hybrid_mean_polling", {"overSharedMem": "true"}, True)
+        exp_notnets_hybrid_mean_polling.deploy_application()
+        monitor_system_call("ipcs", "root", "2", monitor_num_rows_for_value=26)
 
 
-        # exp_notnets_initial_adaptive_polling = ExpRun("notnets-initial_adaptive_polling")
-        # exp_notnets_initial_adaptive_polling.set_experiment_environment("esiramos/initial_adaptive_polling", {"overSharedMem": "true"}, True)
-        # exp_notnets_initial_adaptive_polling.run_experiment(run_command_template, target_throughput, save_output_to_file)
-        
-        
-        # exp_notnets_hybrid_mean_polling = ExpRun("notnets-hybrid_mean_polling")
-        # exp_notnets_hybrid_mean_polling.set_experiment_environment("esiramos/hybrid_mean_polling", {"overSharedMem": "true"}, True)
-        # exp_notnets_hybrid_mean_polling.run_experiment(run_command_template, target_throughput, save_output_to_file)
+        exp_notnets_hybrid_mean_polling.run_experiment(run_command_template, target_throughput, save_output_to_file)
         
         # experiments = [exp_baseline, exp_notnets_full_polling, exp_notnets_adaptive_polling, exp_notnets_initial_adaptive_polling, exp_notnets_hybrid_mean_polling]
-        experiments = [exp_baseline, exp_notnets_full_polling, exp_notnets_adaptive_polling]
+        experiments = [exp_notnets_initial_adaptive_polling, exp_notnets_hybrid_mean_polling]
     
     if args.load_experiments:
         experiments = [load_experiment_from_directory(directory) for directory in args.load_experiments]
