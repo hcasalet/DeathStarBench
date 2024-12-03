@@ -1,0 +1,565 @@
+version: "3.8"
+
+services:
+
+  tempo:
+    image: grafana/tempo:latest
+    networks:
+      - hotel_network
+    command: [ "-config.file=/etc/tempo.yml" ]
+    volumes:
+      - ./tempo/tempo.yml:/etc/tempo.yml
+    ports:
+      - "14268:14268"  # jaeger ingest
+      - "6831:6831/udp"
+      - "3200:3200"   # tempo
+      - "9095:9095" # tempo grpc
+      - "4317:4317"  # otlp grpc
+      - "4318:4318"  # otlp http
+      - "9411:9411"   # zipkin
+
+
+  pyroscope:
+    image: grafana/pyroscope:latest
+    networks:
+      - hotel_network
+    environment:
+      JAEGER_AGENT_HOST: jaeger
+      JAEGER_SAMPLER_TYPE: const
+      JAEGER_SAMPLER_PARAM: 1
+    command: [ "-config.file=/etc/pyroscope.yml" ]
+    ports:
+      - '4040:4040'
+    volumes:
+      - ./pyroscope/pyroscope.yml:/etc/pyroscope.yml
+
+  grafana:
+    image: grafana/grafana:latest
+    networks:
+      - hotel_network
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_INSTALL_PLUGINS=grafana-pyroscope-app
+      - GF_FEATURE_TOGGLES_ENABLE=traceToProfiles tracesEmbeddedFlameGraph
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - '3000:3000'
+
+
+  consul:
+    image: hashicorp/consul:latest
+    hostname: consul
+    ports:
+      - "8300:8300"
+      - "8400:8400"
+      - "8500:8500"
+      - "8600:53/udp"
+    restart: always
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+    networks:
+      - hotel_network
+
+  frontend:
+    configs:
+      - source: server_config
+        target: /config.json
+    environment:
+      - TLS
+      - GC
+      - JAEGER_SAMPLE_RATIO
+      - LOG_LEVEL
+    build: .
+    image: hotel-reservation-swarm:latest
+    entrypoint: ./bin/frontend
+    ports:
+      - "5000:5000"
+    depends_on:
+      - consul
+    restart: always
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - hotel_network
+
+  profile:
+    configs:
+      - source: server_config
+        target: /config.json
+    environment:
+      - TLS
+      - GC
+      - JAEGER_SAMPLE_RATIO
+      - LOG_LEVEL
+    build: .
+    image: hotel-reservation-swarm:latest
+    entrypoint: ./bin/profile
+    depends_on:
+      - mongodb-profile
+      - memcached-profile
+      - consul
+    restart: always
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - hotel_network
+
+  search:
+    configs:
+      - source: server_config
+        target: /config.json
+    environment:
+      - TLS
+      - GC
+      - JAEGER_SAMPLE_RATIO
+      - LOG_LEVEL
+    build: .
+    image: hotel-reservation-swarm:latest
+    entrypoint: ./bin/search
+    depends_on:
+      - consul
+    restart: always
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - hotel_network
+
+  geo:
+    configs:
+      - source: server_config
+        target: /config.json
+    environment:
+      - TLS
+      - GC
+      - JAEGER_SAMPLE_RATIO
+      - LOG_LEVEL
+    build: .
+    image: hotel-reservation-swarm:latest
+    entrypoint: ./bin/geo
+    depends_on:
+      - mongodb-geo
+      - consul
+    restart: always
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - hotel_network
+
+  rate:
+    configs:
+      - source: server_config
+        target: /config.json
+    environment:
+      - TLS
+      - GC
+      - JAEGER_SAMPLE_RATIO
+      - LOG_LEVEL
+    build: .
+    image: hotel-reservation-swarm:latest
+    entrypoint: ./bin/rate
+    depends_on:
+      - mongodb-rate
+      - memcached-rate
+      - consul
+    restart: always
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - hotel_network
+
+  review:
+    environment:
+      - TLS
+      - GC
+      - JAEGER_SAMPLE_RATIO
+      - MEMC_TIMEOUT
+      - LOG_LEVEL
+    build: .
+    image: hotel-reservation-swarm:latest
+    entrypoint: ./bin/review
+    container_name: 'hotel_reserv_review'
+    depends_on:
+      - mongodb-review
+      - memcached-review
+      - consul
+    restart: always
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - hotel_network
+  
+  attractions:
+    environment:
+      GC: "enabled"
+      JAEGER_SAMPLE_RATIO: "1.0"
+      LOG_LEVEL: "debug"
+      MEMC_TIMEOUT: "500"
+      TLS: "false"
+      DB_URL: mongodb://hotel-reservation_mongodb-attractions:27017
+    build: .
+    image: hotel-reservation-swarm:latest
+    entrypoint: ./bin/attractions
+    container_name: 'hotel_reserv_attractions'
+    depends_on:
+      - mongodb-attractions
+      - consul
+    restart: always
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      hotel_network:  # Remove the colon here
+        aliases:
+          - mongodb-attractions
+
+  recommendation:
+    configs:
+      - source: server_config
+        target: /config.json
+    environment:
+      - TLS
+      - GC
+      - JAEGER_SAMPLE_RATIO
+      - LOG_LEVEL
+      - DB_HOST=mongodb-recommendation
+      - DB_PORT=27017
+    build: .
+    image: hotel-reservation-swarm:latest
+    entrypoint: ./bin/recommendation
+    depends_on:
+      - mongodb-recommendation
+      - consul
+    restart: always
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - hotel_network
+
+  user:
+    configs:
+      - source: server_config
+        target: /config.json
+    environment:
+      - TLS
+      - GC
+      - JAEGER_SAMPLE_RATIO
+      - LOG_LEVEL
+    build: .
+    image: hotel-reservation-swarm:latest
+    entrypoint: ./bin/user
+    depends_on:
+      - mongodb-user
+      - consul
+    restart: always
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - hotel_network
+
+  reservation:
+    configs:
+      - source: server_config
+        target: /config.json
+    environment:
+      - TLS
+      - GC
+      - JAEGER_SAMPLE_RATIO
+      - LOG_LEVEL
+    build: .
+    image: hotel-reservation-swarm:latest
+    entrypoint: ./bin/reservation
+    depends_on:
+      - mongodb-reservation
+      - memcached-reserve
+      - consul
+    restart: always
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - hotel_network
+
+  memcached-rate:
+    image: memcached:latest
+    hostname: user-memcached
+    environment:
+      - MEMCACHED_CACHE_SIZE=128
+      - MEMCACHED_THREADS=2
+    logging:
+      options:
+        max-size: 50m
+    restart: always
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - hotel_network
+
+  memcached-review:
+    image: memcached
+    # hostname: user-memcached
+    container_name: 'hotel_reserv_review_mmc'
+    restart: always
+    environment:
+      - MEMCACHED_CACHE_SIZE=128
+      - MEMCACHED_THREADS=2
+    logging:
+      options:
+        max-size: 50m
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - hotel_network
+
+  memcached-profile:
+    image: memcached:latest
+    hostname: user-memcached
+    environment:
+      - MEMCACHED_CACHE_SIZE=128
+      - MEMCACHED_THREADS=2
+    logging:
+      options:
+        max-size: 50m
+    restart: always
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - hotel_network
+
+  memcached-reserve:
+    image: memcached:latest
+    hostname: user-memcached
+    environment:
+      - MEMCACHED_CACHE_SIZE=128
+      - MEMCACHED_THREADS=2
+    logging:
+      options:
+        max-size: 50m
+    restart: always
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - hotel_network
+
+  mongodb-geo:
+    image: mongo:5.0
+    hostname: geo-db
+    volumes:
+      - geo:/data/db
+    restart: always
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - hotel_network
+
+  mongodb-profile:
+    image: mongo:5.0
+    hostname: profile-db
+    volumes:
+      - profile:/data/db
+    restart: always
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - hotel_network
+
+  mongodb-rate:
+    image: mongo:5.0
+    hostname: rate-db
+    volumes:
+      - rate:/data/db
+    restart: always
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - hotel_network
+
+  mongodb-review:
+    image: mongo:5.0
+    hostname: review-db
+    volumes:
+      - review:/data/db
+    restart: always
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - hotel_network
+
+  mongodb-attractions:
+    image: mongo:5.0
+    hostname: attractions-db
+    volumes:
+      - attractions:/data/db
+    restart: always
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+    networks:
+      - hotel_network
+
+  mongodb-recommendation:
+    image: mongo:5.0
+    volumes:
+      - recommendation:/data/db
+    restart: always
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+    networks:
+      - hotel_network
+
+  mongodb-reservation:
+    image: mongo:5.0
+    hostname: reservation-db
+    volumes:
+      - reservation:/data/db
+    restart: always
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - hotel_network
+
+  mongodb-user:
+    image: mongo:5.0
+    hostname: user-db
+    volumes:
+      - user:/data/db
+    restart: always
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - hotel_network
+
+networks:
+  hotel_network:
+    driver: overlay
+    attachable: true
+
+volumes:
+  geo:
+    driver: local
+  profile:
+    driver: local
+  rate:
+    driver: local
+  recommendation:
+    driver: local
+  reservation:
+    driver: local
+  user:
+    driver: local
+  review:
+    driver: local
+  attractions:
+    driver: local
+
+configs:
+  server_config:
+    file: ./config.json
