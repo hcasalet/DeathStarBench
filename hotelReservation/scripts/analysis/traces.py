@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import random
+import re
 
 import numpy as np
 
@@ -57,8 +58,8 @@ def main(extract, start, end, window, num_buckets):
     graph_signature_counts = {}
     all_root_spans = []
     
-    
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "trace_collection")
+    
     ### Get all traces from files, and process them into graphs
     trace_files = os.listdir(path)
     for trace_file in trace_files:
@@ -80,7 +81,11 @@ def main(extract, start, end, window, num_buckets):
             
     ### Process by graph signature
     for signature, graphs in distinct_graphs.items():
-        name = random.randint(0, 100)
+        
+        first_call_name = signature.split("|")
+    
+        name = re.sub(r'\W+', '', first_call_name[0])+ "_" + str(hash(signature))
+        
         print(f"Graph: {name}")
         print(f"Graph: {signature}")
         print(f"Count: {graph_signature_counts[signature]}")
@@ -97,13 +102,14 @@ def main(extract, start, end, window, num_buckets):
         gap_durations.clear()
         internal_durations.clear()
         root_durations.clear()
+        
         grouped_spans = distinct_graphs[signature]
         
         for root_span in grouped_spans:
             
             ### Get total trace duration for this root_span
             trace_duration = root_span.get_span_duration(root_span)
-            trace_durations.append(trace_duration/1000000)
+            trace_durations.append(trace_duration/1000000) # Convert from ns to ms 
             
             
             ### Get INTERNAL and SERVER spans
@@ -112,7 +118,6 @@ def main(extract, start, end, window, num_buckets):
             
             field_values = {"kind": "SPAN_KIND_SERVER"}
             server_span_ids = root_span.find_spans_by_fields(field_values)        
-            
 
             internal_duration = tset.aggregate_span_durations( tset.get_proporational_durations(root_span, [root_span.get_span(span_id) for span_id in internal_span_ids]))
             internal_durations.append(internal_duration)
@@ -138,34 +143,37 @@ def main(extract, start, end, window, num_buckets):
         
         traces = list(zip(trace_durations, span_durations, gap_durations, internal_durations, root_durations))
         traces_array = np.array(traces)
-                # traces_array = np.array(traces, dtype=[('trace_duration', float), ('span_duration', float), ('gap_duration', float), ('internal_duration', float), ('root_duration', float)])
 
 
         # Create aggregated series by percentile distribution of trace durations
-        traces_array.sort(axis=0)
+        # sorted_array =  traces_array.sort(axis=0) TODO: WTF
+        sorted_array = traces_array[traces_array[:, 0].argsort()]
         
         # Calculate percentiles
+        percentiles = [50, 75, 90, 95, 99, 99.9, 99.99, 99.999]
         percentiles = [50, 75, 90, 95, 99]
-        percentile_values = np.percentile(traces_array[:,0], percentiles)
-        
 
+        percentile_values = np.percentile(sorted_array[:,0], percentiles)
+        
         # Group tuples based on percentiles
-        groups = []
+        groups = {}
         start_idx = 0
-        for p_value in percentile_values:
-            # end_idx = np.where(traces_array[:,0] <= p_value)
-            end_idx = np.max(np.where(traces_array[:, 0] <= p_value))
-            # end_idx = np.searchsorted(traces_array[:, 0], p_value)
-            groups.append(traces_array[start_idx:end_idx])
+        for index, p_value in enumerate(percentile_values):
+            end_idx = np.max(np.where(sorted_array[:, 0] <= p_value))
+            groups[p_value] = (sorted_array[start_idx:end_idx])
             start_idx = end_idx
-        groups.append(traces_array[start_idx:])  # Add the remaining tuples
+        # TODO: How many traces_array entries are left?
 
         # Calculate mean and standard deviation for each group
         means = []
         std_devs = []
         
-        for group in groups:
+        means_map = {}
+        std_devs_map = {}
+        
+        for p_value, group in groups.items():
             if len(group) > 0:
+                                
                 max_value = group[:, 0].max()    
             
                 server_span_mean = group[:, 1].mean()
@@ -180,36 +188,76 @@ def main(extract, start, end, window, num_buckets):
                 root_span_mean = group[:, 4].mean()
                 root_span_std = group[:, 4].std()
                 
-                means.append([max_value, server_span_mean, gap_span_mean, internal_span_mean, root_span_mean])
-                std_devs.append([max_value, server_span_std, gap_span_std, internal_span_std, root_span_std])
+                means_map[p_value] = [server_span_mean, gap_span_mean, internal_span_mean, root_span_mean]
+                means.append([server_span_mean, gap_span_mean, internal_span_mean, root_span_mean])
+                std_devs_map[p_value] = [server_span_std, gap_span_std, internal_span_std, root_span_std]
+                std_devs.append([server_span_std, gap_span_std, internal_span_std, root_span_std])
 
         # Convert to numpy arrays for easier plotting
         means = np.array(means)
         std_devs = np.array(std_devs)
         
-        # Plot the results
-        # x_values = percentiles
-        # y_values = means[:, 1:]  # Assuming you want to plot all other axes
-        y_errors = std_devs[:, 1:]
-        CB_color_cycle = [
-                  '#f781bf', '#a65628', '#984ea3',
-                  '#999999', '#e41a1c', '#dede00']
-        width = 0.6
+        num_columns = len(percentiles)
+        if means.shape[0] != num_columns:
+            print(f"Not enough data for all percentiles...")
+            num_columns = means.shape[0]
+            continue
+                            
+        if means.shape != std_devs.shape:
+            print(f"Means shape: {means.shape}")
+            print(f"Std Devs shape: {std_devs.shape}")
+            print("Means and Std Devs shapes do not match, likely insufficient entries to calculate stddev. Skipping...")
+            continue
         
-        for i in range(0 , len(percentiles)):
-            bottom = means[i, 1]
-            plt.bar(f'p{percentiles[i]}', means[i, 1], yerr=y_errors[i,1], label=f'function_span', width=width, bottom=bottom,color=CB_color_cycle[0])
-            bottom = means[i, 1] + means[i,2] 
-            plt.bar(f'p{percentiles[i]}', means[i, 2], yerr=y_errors[i,2], label=f'gap_span', width=width, bottom=bottom,color=CB_color_cycle[1])
-            bottom = means[i, 1] + means[i,2] + means[i,3]
-            plt.bar(f'p{percentiles[i]}', means[i, 3], yerr=y_errors[i,3], label=f'cache_span', width=width, bottom=bottom,color=CB_color_cycle[2])
+        weighted_means_by_series = {
+            "Server Function": [means[:,0], std_devs[:,0]],
+            "Client Call - Server Function Gap (Network)": [means[:,1], std_devs[:,1]],
+            "Cache Call":[means[:,2], std_devs[:,2]],
+            "Frontend": [means[:,3], std_devs[:,3]]
+        }
+        
+        plt.style.use('tableau-colorblind10')
+        fig, ax = plt.subplots()
+        bottom = np.zeros(num_columns)
+        # width = 0.6
+        
+        # Create Bar Names percentile + p_value
+        bar_names = []
+        for index, p_value in enumerate(groups):
+            p_num = percentiles[index]
+            bar_names.append(f"p{p_num}-{round(p_value,1)}ms") 
+            
+        # Create a stacked bar chart, with error bars
+        for index, series in enumerate(weighted_means_by_series.keys()):
+            means_and_std_dev = weighted_means_by_series[series]
+            x_vals = np.arange(num_columns)
 
+            p = ax.bar(x_vals, means_and_std_dev[0], label=series, bottom=bottom, error_kw=dict(capsize=5), color= plt.cm.tab20(index))
+            
+            # Add error bars
+            ax.errorbar(x_vals - 1/10 + index/10, means_and_std_dev[0] + bottom, yerr= means_and_std_dev[1], linestyle='none', capsize=5, color='black')
+            # above line sets the errorbar loctions, adding i/10 each time
+            plt.xticks(ticks=x_vals, labels=bar_names)
+            # reset the xticks to their names
+            
+            bottom += means_and_std_dev[0]
+            
+        # for series, means_and_std_dev in weighted_means_by_series.items():
+        #     p = ax.bar(bar_names, means_and_std_dev[0], yerr=means_and_std_dev[1], label=series, width=width, bottom=bottom,  )
+        #     bottom += means_and_std_dev[0]
 
         # Add labels and title
-        plt.xlabel('X-axis (percentile)')
-        plt.ylabel('Mean values with std dev')
+        
+        ax.grid(True)
+        ax.set_axisbelow(True)
+        fig.autofmt_xdate()
+
+        plt.xlabel('Percentile - Max Duration Value of Percentile')
+        plt.ylabel('Proportion of Overall Trace Duration')
         plt.title('Mean and Standard Deviation of Groups by Percentile')
         plt.legend()
+        # plt.legend(weighted_means_by_series.keys(), loc='upper right')
+
         plt.savefig(f"trace_durations_{name}.png")
 
         
