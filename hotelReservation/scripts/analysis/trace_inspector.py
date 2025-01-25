@@ -43,8 +43,9 @@ class Span:
         signature = []
         signature.append(self.operation_name)
         
-        for child in self.children:
-            
+        children: list[Span] = self.children
+        children.sort(key=lambda span: span.operation_name)
+        for child in children:
             child_signatures = child.construct_graph_signature_from_root()
             signature.extend(child_signatures)
             
