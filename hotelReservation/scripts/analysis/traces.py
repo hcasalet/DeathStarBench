@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import json
 import os
 import random
@@ -9,57 +10,68 @@ import numpy as np
 import trace_inspector
 import tempo_extract
 import matplotlib.pyplot as plt
+
+
+def extract_traces(dir,start, end, window, num_buckets):
+    base_url = "http://localhost:3200"
+    client = tempo_extract.TempoClient(base_url)
+            
+    ### Extract traces
+    query = {
+        "limit": 10000,
+        "kind": "server",
+        # "status": "ok"
+        "tags": ["http.status_code=200"],
+    }
+    # Extract traces within a window of time
+    if start and end:        
+        query["start"] = start
+        query["end"] = end
+    
+    # Extract traces with different duration bounds
+    for i in reversed(range(num_buckets)):
+        # Max Value, capture whole tail
+        if i == num_buckets - 1: # First Bucket, includes all traces north of it
+            bound = window * i
+            min_duration = 0 + bound
+            max_duration = window + (bound * i )
+            min =  str(min_duration) + "ms"
+            max = str(max_duration) + "ms"
+        else: # Standard Bucket
+            bound = window * i
+            min_duration = 0 + bound
+            max_duration = window + bound
+            min =  str(min_duration) + "ms"
+            max = str(max_duration) + "ms"
+        
+        query["minDuration"] = min
+        query["maxDuration"] = max
+
+        print(f"Query: {query}")
+        traces = tempo_extract.collect_traces_with_query(client, query)
+        
+        filen_name = f'{dir}/traces_min_{min_duration}_max_{max_duration}.json'
+        with open(filen_name, 'w') as f:
+            json.dump(traces, f, indent=4)
+    
     
 def main(extract, start, end, window, num_buckets):
     
-    base_url = "http://localhost:3200"
-    client = tempo_extract.TempoClient(base_url)
-        
-    os.makedirs("trace_collection", exist_ok=True)
-        
+    trace_collection_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "trace_collection")
+    
     ### Extract traces
     if extract == True:
-        query = {
-            "limit": 10000,
-            "kind": "server",
-            "tags": ["http.status_code=200"],
-        }
-        # Extract traces within a window of time
-        if start and end:        
-            query["start"] = start
-            query["end"] = end
-        
-        # Extract traces with different duration bounds
-        for i in reversed(range(num_buckets)):
-            # Max Value, capture whole tail
-            if i == num_buckets - 1:
-                bound = window * i
-                min_duration = 0 + bound
-                max_duration = window + (bound * i )
-                min =  str(min_duration) + "ms"
-                max = str(max_duration) + "ms"
-            else:
-                bound = window * i
-                min_duration = 0 + bound
-                max_duration = window + bound
-                min =  str(min_duration) + "ms"
-                max = str(max_duration) + "ms"
-            
-            query["minDuration"] = min
-            query["maxDuration"] = max
+        # Clear previous trace_collection
+        # Create a directory for the trace collection
+        trace_collection_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),"trace_collection" ,datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+        os.makedirs(trace_collection_dir, exist_ok=True)
 
-            traces = tempo_extract.collect_traces_with_query(client, query)
-            with open(f'trace_collection/traces_min_{min_duration}_max_{max_duration}.json', 'w') as f:
-                json.dump(traces, f, indent=4)
-    
+        extract_traces(trace_collection_dir,start, end, window, num_buckets)
     
     ### Process traces
-    distinct_graphs ={}
-    graph_signature_counts = {}
+    os.makedirs(trace_collection_dir, exist_ok=True)
+    path = trace_collection_dir
     all_root_spans = []
-    
-    path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "trace_collection")
-    
     ### Get all traces from files, and process them into graphs
     trace_files = os.listdir(path)
     for trace_file in trace_files:
@@ -68,7 +80,8 @@ def main(extract, start, end, window, num_buckets):
         print(len(root_spans))
         all_root_spans.extend(root_spans)
     
-    
+    distinct_graphs ={}
+    graph_signature_counts = {}
     ### Group traces by graph signature    
     for root_span in all_root_spans:
         signature = root_span.get_graph_signature_from_root()
@@ -150,8 +163,8 @@ def main(extract, start, end, window, num_buckets):
         sorted_array = traces_array[traces_array[:, 0].argsort()]
         
         # Calculate percentiles
-        percentiles = [50, 75, 90, 95, 99, 99.9, 99.99, 99.999]
-        percentiles = [50, 75, 90, 95, 99]
+        # percentiles = [50, 75, 90, 95, 99, 99.9, 99.99, 99.999]
+        percentiles = [50, 75, 90, 95, 99, 100]
 
         percentile_values = np.percentile(sorted_array[:,0], percentiles)
         
@@ -241,10 +254,6 @@ def main(extract, start, end, window, num_buckets):
             # reset the xticks to their names
             
             bottom += means_and_std_dev[0]
-            
-        # for series, means_and_std_dev in weighted_means_by_series.items():
-        #     p = ax.bar(bar_names, means_and_std_dev[0], yerr=means_and_std_dev[1], label=series, width=width, bottom=bottom,  )
-        #     bottom += means_and_std_dev[0]
 
         # Add labels and title
         
@@ -308,8 +317,8 @@ if __name__ == "__main__":
     parser.add_argument("-e","--extract",action="store_true" ,help="Extract traces from tempo")
     parser.add_argument("--start", type=int, help="Start time for trace extraction")
     parser.add_argument("--end", type=int, help="End time for trace extraction")
-    parser.add_argument("--window", type=int, default=10, help="Window size for trace extraction")
-    parser.add_argument("--num-buckets", type=int, default=250, help="Number of buckets for trace extraction querying")
+    parser.add_argument("--window", type=int, default=10, help="Window size for trace extraction (ms)")
+    parser.add_argument("--num-buckets", type=int, default=200, help="Number of buckets for trace extraction querying")
 
 
     args = parser.parse_args()

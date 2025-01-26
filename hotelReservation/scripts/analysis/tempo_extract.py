@@ -55,7 +55,7 @@ def collect_traces_with_query(client, query):
             #trace_data = client.get_trace(trace_id)
             #traces.append(trace_data)
     
-    with ProcessPoolExecutor(max_workers=8) as executor:
+    with ProcessPoolExecutor(max_workers=24) as executor:
         for trace_data in executor.map(client.get_trace, trace_ids):
             if trace_data:
                 traces.append(trace_data)
