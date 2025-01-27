@@ -127,6 +127,8 @@ def graph_stacked_bar_plot(name, traces_array: np.array):
         # plt.legend(weighted_means_by_series.keys(), loc='upper right')
 
         plt.savefig(f"trace_durations_{name}.png")
+        plt.clf()
+        plt.cla()
     
 
 def graph_all_traces(name, traces_array: np.array):
@@ -183,12 +185,14 @@ def graph_distribution(name, traces_array: np.array):
     root_spans = traces_array[:,0] * traces_array[:,4]
     
     # Create a histogram of server span durations
-    plt.hist(traces_array[:,0], bins=100, alpha=0.2, label='Full Trace Durations')
+    # plt.hist(traces_array[:,0], bins=100, alpha=0.2, label='Full Trace Durations')
     
     plt.hist(server_spans, bins=100, alpha=0.5, label='Server Span Durations')
     plt.hist(gap_spans, bins=100, alpha=0.5, label='Gap Span Durations')
     plt.hist(cache_spans, bins=100, alpha=0.5, label='Cache Span Durations')
     plt.hist(root_spans, bins=100, alpha=0.5, label='Root Span Durations')
+    
+    plt.yscale('log')
 
     
     # Add vertical lines at specific x-axis values
@@ -362,7 +366,7 @@ def main(extract, start, end, window, num_buckets, dir):
         # TODO : Get Histogram of proportional distribution by server span, gap span, internal (cache) span, root span
 
         # 1. Stacked Bar Plot
-        # graph_stacked_bar_plot(name, traces_array)
+        graph_stacked_bar_plot(name, traces_array)
 
         # 2. Histogram of trace durations
         graph_distribution(name, traces_array)
