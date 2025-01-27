@@ -2,10 +2,10 @@ package tracing
 
 import (
 	"context"
-	"runtime"
+	// "runtime"
 
 	otelpyroscope "github.com/grafana/otel-profiling-go"
-	"github.com/grafana/pyroscope-go"
+	// "github.com/grafana/pyroscope-go"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	defaultSampleRatio float64 = 0.01
+	defaultSampleRatio float64 = 0.05
 )
 
 // func InitTracer(serviceName string) func() {
