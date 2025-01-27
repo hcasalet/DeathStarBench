@@ -35,11 +35,18 @@ class TempoClient:
         
         return response.json()
 
+
     def get_trace(self, trace_id):
-        url = f"{self.base_url}/api/traces/{trace_id}"
-        response = requests.get(url)
-        response.raise_for_status()
-        return response.json()
+        try:
+            url = f"{self.base_url}/api/traces/{trace_id}"
+            response = requests.get(url)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            if response.status_code == 404:
+                print(f"Trace ID {trace_id} not found (404).")
+            else:
+                raise e
 
 def collect_traces_with_query(client, query):
     traces = []

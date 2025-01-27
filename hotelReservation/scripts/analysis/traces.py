@@ -18,7 +18,7 @@ def extract_traces(dir,start, end, window, num_buckets):
             
     ### Extract traces
     query = {
-        "limit": 10000,
+        "limit": 20000,
         "kind": "server",
         # "status": "ok"
         "tags": ["http.status_code=200"],
@@ -27,7 +27,7 @@ def extract_traces(dir,start, end, window, num_buckets):
     if start and end:        
         query["start"] = start
         query["end"] = end
-    
+        
     # Extract traces with different duration bounds
     for i in reversed(range(num_buckets)):
         # Max Value, capture whole tail
@@ -55,9 +55,12 @@ def extract_traces(dir,start, end, window, num_buckets):
             json.dump(traces, f, indent=4)
     
     
-def main(extract, start, end, window, num_buckets):
+def main(extract, start, end, window, num_buckets, dir):
     
-    trace_collection_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "trace_collection")
+    if dir == "trace_collection":
+        trace_collection_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "trace_collection")
+    else:
+        trace_collection_dir = dir
     
     ### Extract traces
     if extract == True:
@@ -156,6 +159,8 @@ def main(extract, start, end, window, num_buckets):
         
         traces = list(zip(trace_durations, span_durations, gap_durations, internal_durations, root_durations))
         traces_array = np.array(traces)
+        
+        # TODO : Get Histogram of proportional distribution by server span, gap span, internal (cache) span, root span
 
 
         # Create aggregated series by percentile distribution of trace durations
@@ -315,12 +320,13 @@ def main(extract, start, end, window, num_buckets):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Trace parsing script")
     parser.add_argument("-e","--extract",action="store_true" ,help="Extract traces from tempo")
+    parser.add_argument("-f","--dir", type=str, default="trace_collection", help="Trace dir for processing")
     parser.add_argument("--start", type=int, help="Start time for trace extraction")
     parser.add_argument("--end", type=int, help="End time for trace extraction")
-    parser.add_argument("--window", type=int, default=10, help="Window size for trace extraction (ms)")
+    parser.add_argument("--window", type=int, default=5, help="Window size for trace extraction (ms)")
     parser.add_argument("--num-buckets", type=int, default=200, help="Number of buckets for trace extraction querying")
 
 
     args = parser.parse_args()
-    main(args.extract, args.start, args.end, args.window, args.num_buckets)
+    main(args.extract, args.start, args.end, args.window, args.num_buckets, args.dir)
     
