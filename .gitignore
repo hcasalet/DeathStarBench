@@ -10,4 +10,4 @@ wrk2/wrk
 wrk2/*.[oa]
 wrk2/obj/
 
-**/trace_collection/*
+**/trace_collection*/*
