@@ -4,6 +4,7 @@ import json
 import os
 import random
 import re
+from textwrap import wrap
 
 import numpy as np
 
@@ -122,11 +123,13 @@ def graph_stacked_bar_plot(name, traces_array: np.array):
 
         plt.xlabel('Percentile - Max Duration Value of Percentile')
         plt.ylabel('Proportion of Overall Trace Duration')
-        plt.title(f'Average Proportion of Trace Duration for End to End Trace Components - Total-Traces: {num_traces}')
+        plt.title(f'Average Proportion of Trace Duration for End to End Trace Components - Total-Traces: {num_traces}', wrap=True)
         plt.legend()
         # plt.legend(weighted_means_by_series.keys(), loc='upper right')
 
+        # plt.savefig("\n".join(wrap(f"trace_durations_{name}.png", 60)))
         plt.savefig(f"trace_durations_{name}.png")
+
         plt.clf()
         plt.cla()
     
@@ -176,7 +179,14 @@ def graph_all_traces(name, traces_array: np.array):
 
 def graph_distribution(name, traces_array: np.array):
     
+    bins = 100
+    alpha = 0.5
+    
     traces_array = traces_array[traces_array[:, 0].argsort()]
+    
+    if len(traces_array) < bins:
+        print(f"Not enough data to create histogram with {bins} bins")
+        return
 
     # Calculate from percentile proportions the actual values of each span type
     server_spans = traces_array[:,0] * traces_array[:,1]
@@ -187,10 +197,10 @@ def graph_distribution(name, traces_array: np.array):
     # Create a histogram of server span durations
     # plt.hist(traces_array[:,0], bins=100, alpha=0.2, label='Full Trace Durations')
     
-    plt.hist(server_spans, bins=100, alpha=0.5, label='Server Span Durations')
-    plt.hist(gap_spans, bins=100, alpha=0.5, label='Gap Span Durations')
-    plt.hist(cache_spans, bins=100, alpha=0.5, label='Cache Span Durations')
-    plt.hist(root_spans, bins=100, alpha=0.5, label='Root Span Durations')
+    plt.hist(server_spans, bins=bins, alpha=0.5, label='Server Span Durations')
+    plt.hist(gap_spans, bins=bins, alpha=0.5, label='Gap Span Durations')
+    plt.hist(cache_spans, bins=bins, alpha=0.5, label='Cache Span Durations')
+    plt.hist(root_spans, bins=bins, alpha=0.5, label='Root Span Durations')
     
     plt.yscale('log')
 
@@ -329,8 +339,6 @@ def main(extract, start, end, window, num_buckets, dir):
             trace_durations.append(trace_duration/1000000) # Convert from ns to ms 
             # trace_durations.append(trace_duration) # Keep as ns
 
-            
-            
             ### Get INTERNAL and SERVER spans
             field_values = {"kind": "SPAN_KIND_INTERNAL"}
             internal_span_ids = root_span.find_spans_by_fields(field_values)
