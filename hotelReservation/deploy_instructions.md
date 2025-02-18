@@ -91,8 +91,60 @@ Deploying instructions:
 
 5. Start docker containers
 -- start the containers
+4. Save ssh key in Github
+-- generate the public key
+  % ssh-keygen -t ed25519 -C "<email>"
+-- display key on command line
+  % cat ~/.ssh/id_ed25519.pub 
+-- add key in Github settings/ssh keys
+
+5. Get the project
+  % git clone https://github.com/hcasalet/DeathStarBench.git
+  % cd DeathStarBench
+  % git submodule update --init --recursive
+
+6. Start docker containers
+-- 6.1 start the containers
   % cd DeathStarBench/hotelReservation
   % docker-compose up -d --build
+-- or 6.2 start Swarm, on Node 1
+  % docker swarm init --advertise-addr <managerIp>  // use eno1
+-- then on other worker nodes
+  % docker swarm join --token <token> <managerIp>:2377
+-- on manager node, build image
+  % ./build_exec.sh
+  % docker build --no-cache -f Dockerfile.swarm -t hotel-reservation-swarm:latest .
+  % docker save -o my-service.tar hotel-reservation-swarm:latest
+  % ssh-keygen -t rsa -b 4096
+  % cat ~/.ssh/id_rsa.pub
+  % manually add from above to worker nodes ~/.ssh/authorized_keys file
+  % scp my-service.tar user@workerIp:/path/to/destination
+-- on worker nodes:
+  % docker load -i my-service.tar
+-- on all nodes:
+  % sudo nano /etc/docker/daemon.json 
+  % add: {
+            "dns": ["8.8.8.8", "8.8.4.4"]
+         } in the file
+  % sudo systemctl restart docker
+  % check: docker run --rm busybox cat /etc/resolv.conf
+
+-- on manager node:
+  % docker stack deploy -c docker-compose.yml hotel-reservation
+
+-- docker operational commands:
+-- cleaning up stack deploy
+  % docker stack rm <deploy-name>  // for ex, hotel-reservation is the deploy name
+  % docker stack ls    // check if stack still exists
+  % docker service ls    // check if any services are running
+  % docker ps -a         // check if any containers are up
+  % docker system prune -f     // release resources used
+-- debugging
+  % docker service ps <service-name>
+  % docker inspect <task-id>
+  % docker network inspect <overlay-network-name>
+  % docker run -it --rm <image-name> sh  (dummy container to debug)
+
 
 6. Build workload generator
   % cd wrk2   // from DeathStarBench root

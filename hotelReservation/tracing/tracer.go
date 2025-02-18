@@ -2,8 +2,10 @@ package tracing
 
 import (
 	"context"
+	// "runtime"
 
 	otelpyroscope "github.com/grafana/otel-profiling-go"
+	// "github.com/grafana/pyroscope-go"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"

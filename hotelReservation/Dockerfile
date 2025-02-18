@@ -1,5 +1,5 @@
 # Stage 1: Build the Go application
-FROM golang:1.22 as builder
+FROM golang:1.22 AS builder
 
 WORKDIR /workspace
 
@@ -16,6 +16,8 @@ COPY services/ services/
 COPY tls/ tls/
 COPY tracing/ tracing/
 COPY tune/ tune/
+COPY bin/ bin/
+
 COPY config.json config.json
 COPY notnets_grpc/ notnets_grpc/
 
