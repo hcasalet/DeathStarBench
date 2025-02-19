@@ -1,20 +1,27 @@
 # Deploying instructions:
 1. Install Docker
- - update the existing package<br>
-   % sudo apt update<br>
- - install https<br>
-   % sudo apt install apt-transport-https ca-certificates curl software-properties-common<br>
- - add gpg key for Docker repo in Ubuntu<br>
-   % curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - <br>
- - add Docker repo to apt-source<br>
-   % sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable" <br>
- - add Docker software<br>
-   % sudo apt update<br>
-   % sudo apt install docker-ce<br>
- - add username to Docker group<br>
-   % sudo usermod -aG docker ${USER}<br>
- - verify docker status<br>
-   % systemctl status docker<br>
+- update the existing package
+  % sudo apt update
+- install https
+  % sudo apt install apt-transport-https ca-certificates curl software-properties-common
+- add gpg key for Docker repo in Ubuntu
+  % curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+- add Docker repo to apt-source
+  % sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+- add Docker software
+  % sudo apt update
+  % sudo apt install docker-ce
+- add username to Docker group
+  % sudo usermod -aG docker ${USER}
+- verify docker status
+  % systemctl status docker
+- move /var/lib/docker to more capacity
+  % systemctl stop docker
+  % sudo mkdir /holly/docker
+  % sudo chown -R 710 /holly/docker
+  % sudo mv /var/lib/docker /holly/
+  % sudo ln -s /holly/docker /var/lib/docker
+  % sudo systemctl start docker
 
 2. Install Docker compose
  - download software to place in /usr/local/bin<br>
