@@ -56,6 +56,15 @@ services:
       restart_policy:
         condition: any
 
+  aeronmd:
+    image: ghcr.io/hcasalet/aeronmd:latest
+    container_name: aeronmd
+    shm_size: "256m"
+    volumes:
+      - /dev/shm:/dev/shm  # Share shared memory for IPC
+    restart: always
+    entrypoint: ["aeronmd"]
+
   frontend:
     configs:
       - source: server_config
