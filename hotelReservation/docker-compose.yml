@@ -63,7 +63,7 @@ services:
     volumes:
       - /dev/shm:/dev/shm  # Share shared memory for IPC
     restart: always
-    entrypoint: ["aeronmd"]
+    entrypoint: ["aeron/bin/aeronmd"]
 
   frontend:
     configs:
