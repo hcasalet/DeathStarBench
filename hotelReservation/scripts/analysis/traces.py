@@ -197,10 +197,15 @@ def graph_distribution(name, traces_array: np.array):
     # Create a histogram of server span durations
     # plt.hist(traces_array[:,0], bins=100, alpha=0.2, label='Full Trace Durations')
     
-    plt.hist(server_spans, bins=bins, alpha=0.5, label='Server Span Durations')
-    plt.hist(gap_spans, bins=bins, alpha=0.5, label='Gap Span Durations')
-    plt.hist(cache_spans, bins=bins, alpha=0.5, label='Cache Span Durations')
-    plt.hist(root_spans, bins=bins, alpha=0.5, label='Root Span Durations')
+    
+    
+    colors = ['#377eb8', '#4daf4a', '#e41a1c', '#984ea3']
+
+    plt.hist(server_spans, bins=bins, alpha=alpha, label='Server Function Durations', color=colors[0])
+    plt.hist(gap_spans, bins=bins, alpha=alpha, label='Client Call - Server Function Gap (Network)', color=colors[1])
+    plt.hist(cache_spans, bins=bins, alpha=alpha, label='Cache Call', color=colors[2])
+    plt.hist(root_spans, bins=bins, alpha=alpha, label='Frontend', color=colors[3])
+
     
     plt.yscale('log')
 
@@ -211,6 +216,7 @@ def graph_distribution(name, traces_array: np.array):
     # for label,x_value in x_values_to_mark.items():
     #     plt.axvline(x=x_value, color='r', linestyle='--', linewidth=1)
     #     plt.text(x_value, 1, label, verticalalignment='center')
+    
 
     plt.xlabel('Duration (ms)')
     plt.ylabel('Number of spans')
