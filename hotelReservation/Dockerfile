@@ -36,7 +36,7 @@ WORKDIR /workspace
 
 # Install libstdc++ to match GCC 11.4
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libstdc++6 gcc libc-dev && \
+    libstdc++6 gcc libc-dev  libnuma-dev  && \
     rm -rf /var/lib/apt/lists/*
 
 # Ensure the shared library is in a standard location

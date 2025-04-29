@@ -3,7 +3,7 @@ version: "3.8"
 services:
 
   tempo:
-    image: grafana/tempo:latest
+    image: grafana/tempo:2.6.1
     command: [ "-config.file=/etc/tempo.yml" ]
     volumes:
       - ./tempo/tempo.yml:/etc/tempo.yml
