@@ -13,7 +13,7 @@ import tempo_extract
 import matplotlib.pyplot as plt
 
 
-def graph_stacked_bar_plot(name, traces_array: np.array):
+def graph_stacked_bar_plot(name, traces_array: np.array, prefix):
     
         # Total number of traces
         num_traces = len(traces_array)
@@ -128,7 +128,7 @@ def graph_stacked_bar_plot(name, traces_array: np.array):
         # plt.legend(weighted_means_by_series.keys(), loc='upper right')
 
         # plt.savefig("\n".join(wrap(f"trace_durations_{name}.png", 60)))
-        plt.savefig(f"trace_durations_{name}.png")
+        plt.savefig(f"{prefix}trace_durations_{name}.png")
 
         plt.clf()
         plt.cla()
@@ -177,7 +177,7 @@ def graph_all_traces(name, traces_array: np.array):
     plt.cla()
     
 
-def graph_distribution(name, traces_array: np.array):
+def graph_distribution(name, traces_array: np.array, prefix):
     
     bins = 100
     alpha = 0.5
@@ -224,19 +224,19 @@ def graph_distribution(name, traces_array: np.array):
     plt.title('Distribution of trace durations by category')
     plt.legend(loc='upper right') 
 
-    plt.savefig(f"histogram_{name}.png")
+    plt.savefig(f"{prefix}histogram_{name}.png")
     plt.clf()
     plt.cla()
     
 
-def extract_traces(dir,start, end, window, num_buckets):
-    base_url = "http://localhost:3200"
+def extract_traces(url,dir,start, end, window, num_buckets):
+    base_url = url
     client = tempo_extract.TempoClient(base_url)
             
     ### Extract traces
     query = {
         "limit": 20000,
-        "kind": "server",
+        # "kind": "server",
         # "status": "ok"
         "tags": ["http.status_code=200"],
     }
@@ -270,9 +270,8 @@ def extract_traces(dir,start, end, window, num_buckets):
         filen_name = f'{dir}/traces_min_{min_duration}_max_{max_duration}.json'
         with open(filen_name, 'w') as f:
             json.dump(traces, f, indent=4)
-    
-    
-def main(extract, start, end, window, num_buckets, dir):
+
+def main(url,extract, start, end, window, num_buckets, dir, prefix):
     
     if dir == "trace_collection":
         trace_collection_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "trace_collection")
@@ -286,8 +285,10 @@ def main(extract, start, end, window, num_buckets, dir):
         trace_collection_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),"trace_collection" ,datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
         os.makedirs(trace_collection_dir, exist_ok=True)
 
-        extract_traces(trace_collection_dir,start, end, window, num_buckets)
+        extract_traces(url,trace_collection_dir,start, end, window, num_buckets)
     
+    trace_collection_by_name = {}
+
     ### Process traces
     os.makedirs(trace_collection_dir, exist_ok=True)
     path = trace_collection_dir
@@ -377,13 +378,14 @@ def main(extract, start, end, window, num_buckets, dir):
         traces = list(zip(trace_durations, span_durations, gap_durations, internal_durations, root_durations))
         traces_array = np.array(traces)
         
+        trace_collection_by_name[name] = traces_array
         # TODO : Get Histogram of proportional distribution by server span, gap span, internal (cache) span, root span
 
         # 1. Stacked Bar Plot
-        graph_stacked_bar_plot(name, traces_array)
+        graph_stacked_bar_plot(name, traces_array, prefix)
 
         # 2. Histogram of trace durations
-        graph_distribution(name, traces_array)
+        graph_distribution(name, traces_array, prefix)
         
 
     
@@ -395,8 +397,11 @@ if __name__ == "__main__":
     parser.add_argument("--end", type=int, help="End time for trace extraction")
     parser.add_argument("--window", type=int, default=5, help="Window size for trace extraction (ms)")
     parser.add_argument("--num-buckets", type=int, default=200, help="Number of buckets for trace extraction querying")
+    parser.add_argument("--url", type=str, default="localhost:3200", help="url for tempo")
+    parser.add_argument("--prefix", type=str, default="", help="name prefix for graphs")
+
 
 
     args = parser.parse_args()
-    main(args.extract, args.start, args.end, args.window, args.num_buckets, args.dir)
+    main(args.url,args.extract, args.start, args.end, args.window, args.num_buckets, args.dir, args.prefix)
     

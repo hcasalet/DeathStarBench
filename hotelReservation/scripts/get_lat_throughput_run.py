@@ -215,51 +215,55 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
-    run_command_template = "../../wrk2/wrk -D exp -t16 -c1000 -d30s -L -s ../wrk2/scripts/hotel-reservation/mixed-workload_type_1.lua http://127.0.0.1:5000 -R{}"
-    target_throughput = list(range(1000, 15000, 1000))  
+    run_command_template = "../../wrk2/wrk -D exp -t16 -c1000 -d30s -L -s ../wrk2/scripts/hotel-reservation/mixed-workload_type_1.lua http://128.110.219.52:5000 -R{}"
+    target_throughput = list(range(1000, 20000, 1000))  
     
     experiments = []
     
     if args.run_experiment:
-        exp_notnets_full_polling = ExpRun("notnets-full_polling")
-        exp_notnets_full_polling.down_application()
-        exp_notnets_full_polling.set_experiment_environment("main", {"overSharedMem": "true"}, True)
-        exp_notnets_full_polling.deploy_application()
-        # monitor connection time
-        monitor_system_call("ipcs", "root", "2", monitor_num_rows_for_value=26)
-        exp_notnets_full_polling.run_experiment(run_command_template, target_throughput, save_output_to_file)
+    
         
+        # exp_baseline = ExpRun("baseline")
+        # exp_baseline.down_application()
+        # exp_baseline.set_experiment_environment(None, {"overSharedMem": "false"}, True)
+        # exp_baseline.deploy_application()
+        # exp_baseline.run_experiment(run_command_template, target_throughput, save_output_to_file)
+
+        # exp_notnets_full_polling = ExpRun("notnets-full_polling")
+        # exp_notnets_full_polling.down_application()
+        # exp_notnets_full_polling.set_experiment_environment("main", {"overSharedMem": "true"}, True)
+        # exp_notnets_full_polling.deploy_application()
+        # # monitor connection time
+        # monitor_system_call("ipcs", "root", "2", monitor_num_rows_for_value=26)
+        # exp_notnets_full_polling.run_experiment(run_command_template, target_throughput, save_output_to_file)
         
-        exp_baseline = ExpRun("baseline")
-        exp_baseline.down_application()
-        exp_baseline.set_experiment_environment(None, {"overSharedMem": "false"}, True)
-        exp_baseline.deploy_application()
-        exp_baseline.run_experiment(run_command_template, target_throughput, save_output_to_file)
-        
-        
-        exp_notnets_full_polling = ExpRun("notnets-full_polling")
-        exp_notnets_full_polling.down_application()
-        exp_notnets_full_polling.set_experiment_environment("main", {"overSharedMem": "true"}, True)
-        exp_notnets_full_polling.deploy_application()
-        # monitor connection time
-        monitor_system_call("ipcs", "root", "2", monitor_num_rows_for_value=26)
-        exp_notnets_full_polling.run_experiment(run_command_template, target_throughput, save_output_to_file)
-        
-        
-        exp_notnets_adaptive_polling = ExpRun("notnets-umwait")
-        exp_notnets_adaptive_polling.down_application()
-        exp_notnets_adaptive_polling.set_experiment_environment("esiramos/mwait_implementation", {"overSharedMem": "true"}, True)
-        exp_notnets_adaptive_polling.deploy_application()
-        monitor_system_call("ipcs", "root", "2", monitor_num_rows_for_value=26)
-        exp_notnets_adaptive_polling.run_experiment(run_command_template, target_throughput, save_output_to_file)
+        exp_notnets_sem = ExpRun("notnets-sem")
+        exp_notnets_sem.run_experiment(run_command_template, target_throughput, save_output_to_file)
 
         
-        exp_notnets_adaptive_polling = ExpRun("notnets-adaptive_polling")
-        exp_notnets_adaptive_polling.down_application()
-        exp_notnets_adaptive_polling.set_experiment_environment("esiramos/adaptive_polling", {"overSharedMem": "true"}, True)
-        exp_notnets_adaptive_polling.deploy_application()
-        monitor_system_call("ipcs", "root", "2", monitor_num_rows_for_value=26)
-        exp_notnets_adaptive_polling.run_experiment(run_command_template, target_throughput, save_output_to_file)
+        # exp_notnets_full_polling = ExpRun("notnets-full_polling")
+        # exp_notnets_full_polling.down_application()
+        # exp_notnets_full_polling.set_experiment_environment("main", {"overSharedMem": "true"}, True)
+        # exp_notnets_full_polling.deploy_application()
+        # # monitor connection time
+        # monitor_system_call("ipcs", "root", "2", monitor_num_rows_for_value=26)
+        # exp_notnets_full_polling.run_experiment(run_command_template, target_throughput, save_output_to_file)
+        
+        
+        # exp_notnets_adaptive_polling = ExpRun("notnets-umwait")
+        # exp_notnets_adaptive_polling.down_application()
+        # exp_notnets_adaptive_polling.set_experiment_environment("esiramos/mwait_implementation", {"overSharedMem": "true"}, True)
+        # exp_notnets_adaptive_polling.deploy_application()
+        # monitor_system_call("ipcs", "root", "2", monitor_num_rows_for_value=26)
+        # exp_notnets_adaptive_polling.run_experiment(run_command_template, target_throughput, save_output_to_file)
+
+        
+        # exp_notnets_adaptive_polling = ExpRun("notnets-adaptive_polling")
+        # exp_notnets_adaptive_polling.down_application()
+        # exp_notnets_adaptive_polling.set_experiment_environment("esiramos/adaptive_polling", {"overSharedMem": "true"}, True)
+        # exp_notnets_adaptive_polling.deploy_application()
+        # monitor_system_call("ipcs", "root", "2", monitor_num_rows_for_value=26)
+        # exp_notnets_adaptive_polling.run_experiment(run_command_template, target_throughput, save_output_to_file)
         
 
 
@@ -283,7 +287,7 @@ def main():
 
         # exp_notnets_hybrid_mean_polling.run_experiment(run_command_template, target_throughput, save_output_to_file)
         
-        experiments = [exp_baseline, exp_notnets_full_polling, exp_notnets_adaptive_polling]
+        experiments = [exp_notnets_sem]
         # experiments = [exp_notnets_initial_adaptive_polling, exp_notnets_hybrid_mean_polling]
     
     if args.load_experiments:
