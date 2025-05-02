@@ -28,7 +28,7 @@ import (
 )
 
 const name = "srv-rate"
-const LARGE_MESSAGE_SIZE = 2097152 //4MB 
+const LARGE_MESSAGE_SIZE = 1000000 //4MB 
 
 
 // Server implements the rate service
