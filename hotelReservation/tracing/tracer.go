@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	defaultSampleRatio float64 = 0.01
+	defaultSampleRatio float64 = 0.00
 )
 
 // func InitTracer(serviceName string) func() {

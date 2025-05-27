@@ -3,9 +3,41 @@ import os
 import subprocess
 import re
 import time
+import psutil
+import threading
 import argparse
 
 import matplotlib.pyplot as plt
+
+
+class CPUMonitor:
+    def __init__(self, log_file, interval=0.5):
+        """
+        Initialize the CPU monitor.
+
+        Args:
+            log_file (str): Path to the file where CPU usage will be logged.
+            interval (float): Time in seconds between CPU usage samples.
+        """
+        self.log_file = log_file
+        self.interval = interval
+        self._stop_event = threading.Event()
+        self._thread = threading.Thread(target=self._monitor_cpu)
+
+    def _monitor_cpu(self):
+        with open(self.log_file, 'a') as f:
+            f.write("timestamp,cpu_percent\n")
+            while not self._stop_event.is_set():
+                cpu_percent = psutil.cpu_percent(interval=self.interval)
+                timestamp = time.time()
+                f.write(f"{timestamp},{cpu_percent}\n")
+
+    def start(self):
+        self._thread.start()
+
+    def stop(self):
+        self._stop_event.set()
+        self._thread.join()
 
 def run_command(command: str, print_output: bool | None = None, print_error: bool | None = None) -> str:
     print(f"Running command: {command}")
@@ -85,23 +117,39 @@ class ExpRun:
         
     
         
-    def run_experiment(self, command_template, target_throughput, save_output_to_file):
-        for target in target_throughput:
-            command = command_template.format(target)
-            output = run_command(command, print_output=False)
-            if save_output_to_file:
-                save_output_to_file(output, f"{self.run_name}",f"{self.run_name}/throughput_{target}.txt")            
-            throughput = parse_output_by_key_value(output, 'Requests\/sec:')
-            latency_p50 = parse_output_by_key_value(output, '50\.000%')
-            latency_p75 = parse_output_by_key_value(output, '75\.000%')
-            latency_p90 = parse_output_by_key_value(output, '90\.000%')
-            latency_p99 = parse_output_by_key_value(output, '99\.000%')             
-            print(f"Run Name: {self.run_name}, Throughput: {throughput}, Latency p50: {latency_p50}, Latency p75: {latency_p75}, Latency p90: {latency_p90}, Latency p99: {latency_p99}")
-            self.throughput.append(throughput)
-            self.latency_p50.append(latency_p50)
-            self.latency_p75.append(latency_p75)
-            self.latency_p90.append(latency_p90)
-            self.latency_p99.append(latency_p99)
+    def run_experiment(self, command_template, target_throughput, save_output_to_file, num_runs=1):
+        # Run the experiment for each target throughput
+        os.makedirs(self.run_name, exist_ok=True)
+
+        for i in range(num_runs):
+            # Create a subdirectory for each run
+            run_dir = os.path.join(self.run_name, f"run_{i+1}")
+            os.makedirs(run_dir, exist_ok=True)
+            
+            for target in target_throughput:
+                # Run the command for each target throughput
+                command = command_template.format(target)
+
+                monitor = CPUMonitor(os.path.join(run_dir, f"cpu_usage_{target}.csv"))
+                monitor.start()
+                output = run_command(command, print_output=False)
+                monitor.stop()
+
+                if save_output_to_file:
+                    save_output_to_file(output, f"{self.run_name}",f"{run_dir}/throughput_{target}.txt")            
+                
+                throughput = parse_output_by_key_value(output, 'Requests\/sec:')
+                latency_p50 = parse_output_by_key_value(output, '50\.000%')
+                latency_p75 = parse_output_by_key_value(output, '75\.000%')
+                latency_p90 = parse_output_by_key_value(output, '90\.000%')
+                latency_p99 = parse_output_by_key_value(output, '99\.000%')             
+                print(f"Run Name: {self.run_name}, Throughput: {throughput}, Latency p50: {latency_p50}, Latency p75: {latency_p75}, Latency p90: {latency_p90}, Latency p99: {latency_p99}")
+                self.throughput.append(throughput)
+                self.latency_p50.append(latency_p50)
+                self.latency_p75.append(latency_p75)
+                self.latency_p90.append(latency_p90)
+                self.latency_p99.append(latency_p99)
+
     
 
 def load_experiment_from_directory(directory) -> ExpRun:
@@ -215,30 +263,39 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
-    run_command_template = "../../wrk2/wrk -D exp -t16 -c1000 -d30s -L -s ../wrk2/scripts/hotel-reservation/mixed-workload_type_1.lua http://128.110.219.52:5000 -R{}"
-    target_throughput = list(range(1000, 20000, 1000))  
+    # run_command_template = "../../wrk2/wrk -D exp -t16 -c1000 -d30s -L -s ../wrk2/scripts/hotel-reservation/mixed-workload_type_1.lua http://128.110.219.52:5000 -R{}"
+    
+    run_command_template = "taskset -c 0,1,2,3 ../../wrk2/wrk -D exp -t20 -c1200 -d60s -L -s ../wrk2/scripts/hotel-reservation/mixed-workload_type_1.lua  http://127.0.0.1:5000  -R{}"
+    target_throughput = list(range(1000, 30000, 1000))  
     
     experiments = []
     
     if args.run_experiment:
-    
-        
-        # exp_baseline = ExpRun("baseline")
-        # exp_baseline.down_application()
-        # exp_baseline.set_experiment_environment(None, {"overSharedMem": "false"}, True)
-        # exp_baseline.deploy_application()
-        # exp_baseline.run_experiment(run_command_template, target_throughput, save_output_to_file)
 
-        # exp_notnets_full_polling = ExpRun("notnets-full_polling")
-        # exp_notnets_full_polling.down_application()
-        # exp_notnets_full_polling.set_experiment_environment("main", {"overSharedMem": "true"}, True)
-        # exp_notnets_full_polling.deploy_application()
-        # # monitor connection time
-        # monitor_system_call("ipcs", "root", "2", monitor_num_rows_for_value=26)
-        # exp_notnets_full_polling.run_experiment(run_command_template, target_throughput, save_output_to_file)
+
+        exp_baseline = ExpRun("baseline")
+        exp_baseline.down_application()
+        exp_baseline.set_experiment_environment(None, {"overSharedMem": "false"}, True)
+        exp_baseline.deploy_application()
+        exp_baseline.run_experiment(run_command_template, target_throughput, save_output_to_file, 3)
+
+        # exp_baseline_no_lo = ExpRun("baseline-host-network")
+        # exp_baseline_no_lo.down_application()
+        # exp_baseline_no_lo.set_experiment_environment(None, {"overSharedMem": "false"}, True)
+        # exp_baseline_no_lo.deploy_application()
+        # exp_baseline_no_lo.run_experiment(run_command_template, target_throughput, save_output_to_file, 3)
+
+        exp_notnets_full_polling = ExpRun("notnets-full_polling")
+        exp_notnets_full_polling.down_application()
+        exp_notnets_full_polling.set_experiment_environment("esiramos/adaptive_polling", {"overSharedMem": "true"}, True)
+        exp_notnets_full_polling.deploy_application()
+        # monitor connection time
+        monitor_system_call("ipcs", "root", "2", monitor_num_rows_for_value=26)
+        exp_notnets_full_polling.run_experiment(run_command_template, target_throughput, save_output_to_file, 3)
         
-        exp_notnets_sem = ExpRun("notnets-sem")
-        exp_notnets_sem.run_experiment(run_command_template, target_throughput, save_output_to_file)
+
+        # exp_notnets_sem = ExpRun("notnets-sem")
+        # exp_notnets_sem.run_experiment(run_command_template, target_throughput, save_output_to_file, 3)
 
         
         # exp_notnets_full_polling = ExpRun("notnets-full_polling")
@@ -263,7 +320,7 @@ def main():
         # exp_notnets_adaptive_polling.set_experiment_environment("esiramos/adaptive_polling", {"overSharedMem": "true"}, True)
         # exp_notnets_adaptive_polling.deploy_application()
         # monitor_system_call("ipcs", "root", "2", monitor_num_rows_for_value=26)
-        # exp_notnets_adaptive_polling.run_experiment(run_command_template, target_throughput, save_output_to_file)
+        # exp_notnets_adaptive_polling.run_experiment(run_command_template, target_throughput, save_output_to_file,3)
         
 
 
@@ -287,7 +344,7 @@ def main():
 
         # exp_notnets_hybrid_mean_polling.run_experiment(run_command_template, target_throughput, save_output_to_file)
         
-        experiments = [exp_notnets_sem]
+        experiments = [exp_notnets_full_polling]
         # experiments = [exp_notnets_initial_adaptive_polling, exp_notnets_hybrid_mean_polling]
     
     if args.load_experiments:

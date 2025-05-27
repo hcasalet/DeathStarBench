@@ -6,6 +6,9 @@ services:
     image: grafana/tempo:2.6.1
     command: [ "-config.file=/etc/tempo.yml" ]
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.100
     volumes:
       - ./tempo/tempo.yml:/etc/tempo.yml
     ports:
@@ -26,6 +29,9 @@ services:
       JAEGER_SAMPLER_PARAM: 1
     command: [ "-config.file=/etc/pyroscope.yml" ]
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.101
     ports:
       - '4040:4040'
     volumes:
@@ -34,6 +40,9 @@ services:
   grafana:
     image: grafana/grafana:latest
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.102
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
@@ -55,6 +64,9 @@ services:
       - "8600:53/udp"
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.103
     deploy:
       replicas: 1
       restart_policy:
@@ -79,8 +91,11 @@ services:
       - consul
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.104
     deploy:
-      replicas: 3
+      replicas: 1
       restart_policy:
         condition: any
     ipc: host
@@ -107,6 +122,9 @@ services:
       - consul
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.105
     deploy:
       replicas: 1
       restart_policy:
@@ -133,6 +151,9 @@ services:
       - consul
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.106
     deploy:
       replicas: 1
       restart_policy:
@@ -160,6 +181,9 @@ services:
       - consul
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.107
     deploy:
       replicas: 1
       restart_policy:
@@ -188,6 +212,9 @@ services:
       - consul
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.108
     deploy:
       replicas: 1
       restart_policy:
@@ -215,6 +242,9 @@ services:
       - consul
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.109
     ipc: host
   
   attractions:
@@ -234,6 +264,9 @@ services:
       - consul
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.110
     ipc: host
 
   recommendation:
@@ -254,6 +287,9 @@ services:
       - consul
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.111
     deploy:
       replicas: 1
       restart_policy:
@@ -281,6 +317,9 @@ services:
       - consul
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.112
     deploy:
       replicas: 1
       restart_policy:
@@ -309,6 +348,9 @@ services:
       - consul
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.113
     deploy:
       replicas: 1
       restart_policy:
@@ -329,6 +371,9 @@ services:
         max-size: 50m
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.114
     deploy:
       replicas: 1
       restart_policy:
@@ -343,6 +388,9 @@ services:
     container_name: 'hotel_reserv_review_mmc'
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.115
     environment:
       - MEMCACHED_CACHE_SIZE=128
       - MEMCACHED_THREADS=2
@@ -361,6 +409,9 @@ services:
         max-size: 50m
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.116
     deploy:
       replicas: 1
       restart_policy:
@@ -377,6 +428,9 @@ services:
         max-size: 50m
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.117
     deploy:
       replicas: 1
       restart_policy:
@@ -389,6 +443,9 @@ services:
       - geo:/data/db
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.118
     deploy:
       replicas: 1
       restart_policy:
@@ -401,6 +458,9 @@ services:
       - profile:/data/db
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.119
     deploy:
       replicas: 1
       restart_policy:
@@ -413,6 +473,9 @@ services:
       - rate:/data/db
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.120
     deploy:
       replicas: 1
       restart_policy:
@@ -425,6 +488,9 @@ services:
       - review:/data/db
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.121
     deploy:
       replicas: 1
       restart_policy:
@@ -437,6 +503,9 @@ services:
       - attractions:/data/db
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.122
     deploy:
       replicas: 1
       restart_policy:
@@ -449,6 +518,9 @@ services:
       - recommendation:/data/db
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.123
     deploy:
       replicas: 1
       restart_policy:
@@ -461,6 +533,9 @@ services:
       - reservation:/data/db
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.124
     deploy:
       replicas: 1
       restart_policy:
@@ -473,6 +548,9 @@ services:
       - user:/data/db
     restart: always
     cpuset: "16-95"
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.125
     deploy:
       replicas: 1
       restart_policy:
@@ -491,3 +569,15 @@ volumes:
 configs:
   server_config:
     file: ./config.json
+
+
+networks:
+  macvlan_net:
+    driver: macvlan
+    driver_opts:
+      parent: eno12399np0
+    ipam:
+      config:
+        - subnet: "192.168.1.0/24"
+          ip_range: "192.168.1.64/26"
+          gateway: "192.168.1.1"
